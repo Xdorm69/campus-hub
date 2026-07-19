@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function DashboardError({
   error,
@@ -24,7 +25,7 @@ export default function DashboardError({
       </p>
       <div className="mt-2 flex gap-2">
         <Button variant="outline" onClick={() => reset()}>Try again</Button>
-        <Button asChild><a href="/">Go to dashboard</a></Button>
+        <Button><Link href="/">Go to dashboard</Link></Button>
       </div>
     </div>
   );

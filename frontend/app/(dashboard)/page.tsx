@@ -49,7 +49,7 @@ export default function DashboardPage() {
               title="You haven't joined any classes yet"
               description="Browse classes to find one to join."
               action={
-                <Button asChild size="sm">
+                <Button size="sm">
                   <Link href="/classes">Browse classes</Link>
                 </Button>
               }
