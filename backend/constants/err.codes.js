@@ -1,0 +1,9 @@
+export const errorCodes = {
+    VALIDATION_ERROR: 400,
+    NOT_FOUND: 404,
+    UNAUTHORIZED: 401,
+    FORBIDDEN: 403,
+    CONFLICT: 409,
+    INTERNAL_SERVER_ERROR: 500,
+    BAD_REQUEST: 400,
+};
