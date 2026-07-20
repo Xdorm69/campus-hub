@@ -16,11 +16,25 @@ api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorResponse>) => {
     if (!error.response) {
-      // Network down / backend unreachable
-      console.error("Network error: unable to reach the server.");
+      return Promise.reject(new Error("Unable to reach server"));
+    }
+
+    if (error.response.status === 401) {
+      if (
+        typeof window !== "undefined" &&
+        !window.location.pathname.startsWith("/login") &&
+        !window.location.pathname.startsWith("/register")
+      ) {
+        window.location.replace(
+          `/login?from=${encodeURIComponent(window.location.pathname)}`
+        );
+      }
+
       return Promise.reject(error);
     }
 
-    return Promise.reject(new Error(error.response.data.message));
+    return Promise.reject(
+      new Error(error.response.data.message)
+    );
   }
 );
