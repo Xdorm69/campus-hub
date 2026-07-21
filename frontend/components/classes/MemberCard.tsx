@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useModerateMember, useRemoveMember } from "@/hooks/useMembers";
 import { ClassMember } from "@/types/class";
+import { cn } from "@/lib/utils";
 
 export function MemberCard({
   member,
@@ -31,8 +32,13 @@ export function MemberCard({
   const initials = member.user.username.slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md px-2 py-2 hover:bg-secondary/60">
-      <div className="flex min-w-0 items-center gap-3">
+    <div className={cn("flex items-center justify-between gap-3 rounded-md px-2 py-2 hover:bg-secondary/60",
+      member.banned && "bg-red-50",
+      member.muted && "bg-yellow-50",
+      member.isModerator && "bg-primary/5",
+      member.user.role === "ADMIN" && "bg-purple-900 text-white hover:bg-purple-800")}>
+        
+      <div className={"flex min-w-0 items-center gap-3"}>
         <Avatar className="h-9 w-9">
           <AvatarImage src={member.user.avatarUrl ?? undefined} alt={member.user.username} />
           <AvatarFallback className="text-xs">{initials}</AvatarFallback>
@@ -40,18 +46,20 @@ export function MemberCard({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <p className="truncate text-sm font-medium">{member.user.username}</p>
-            {member.role === "MODERATOR" && (
+            {member.isModerator && (
               <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="Moderator" />
             )}
           </div>
           <div className="flex gap-1.5 text-xs text-muted-foreground">
-            {member.isMuted && <span>Muted</span>}
-            {member.isBanned && <span>Banned</span>}
+            {member.muted && <span>Muted</span>}
+            {member.banned && <span>Banned</span>}
           </div>
         </div>
       </div>
 
-      {canModerate && (
+      {member.user.role === "ADMIN" && <p className="text-xs font-serif text-white/40">admin</p>}
+
+      {canModerate && !(member.user.role === "ADMIN" || member.isModerator) && (
         <>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -61,18 +69,18 @@ export function MemberCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => moderate.mutate({ memberId: member.id, payload: { isMuted: !member.isMuted } })}
+                onClick={() => moderate.mutate({ memberId: member.userId, payload: { isMuted: !member.muted } })}
               >
-                {member.isMuted ? "Unmute" : "Mute"}
+                {member.muted ? "Unmute" : "Mute"}
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => moderate.mutate({ memberId: member.id, payload: { isBanned: !member.isBanned } })}
+                onClick={() => moderate.mutate({ memberId: member.userId, payload: { isBanned: !member.banned } })}
               >
-                {member.isBanned ? "Unban" : "Ban"}
+                {member.banned ? "Unban" : "Ban"}
               </DropdownMenuItem>
-              {member.role !== "MODERATOR" && (
+              {!member.isModerator && (
                 <DropdownMenuItem
-                  onClick={() => moderate.mutate({ memberId: member.id, payload: { role: "MODERATOR" } })}
+                  onClick={() => moderate.mutate({ memberId: member.userId, payload: { role: "MODERATOR" } })}
                 >
                   Promote to moderator
                 </DropdownMenuItem>
@@ -93,7 +101,7 @@ export function MemberCard({
             destructive
             isLoading={remove.isPending}
             onConfirm={() =>
-              remove.mutate(member.id, { onSuccess: () => setConfirmRemove(false) })
+              remove.mutate(member.userId, { onSuccess: () => setConfirmRemove(false) })
             }
           />
         </>

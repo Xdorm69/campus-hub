@@ -62,11 +62,11 @@ export function PostCard({ post, classId, isOwn }: { post: Post; classId: string
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={post.author.avatar ?? undefined} alt={post.author.username ?? "WILLFIX"} />
+            <AvatarImage src={post.author.avatar ?? undefined} alt={post.author.username} />
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm font-medium">{post.author.username ?? "WILLFIX"}</p>
+            <p className="text-sm font-medium">{post.author.username}</p>
             <p className="text-xs text-muted-foreground">{timeAgo(post.createdAt)}</p>
           </div>
         </div>

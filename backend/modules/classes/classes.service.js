@@ -29,7 +29,7 @@ export const classesService = {
         const userClassEl = await membershipRepository.getMembership(userId, classId);
 
         //attaching role
-        return {...classEl, isMember: !!userClassEl, moderator: userClassEl?.isModerator || false};
+        return {...classEl, isMember: !!userClassEl, isModerator: userClassEl?.isModerator || false};
     },
     createClass: async (data) => {
         const createdClass = await classesRepository.createClass(data);

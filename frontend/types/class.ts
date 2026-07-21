@@ -8,21 +8,24 @@ export interface ClassSummary {
 }
 
 export interface ClassDetails extends ClassSummary {
-  moderator: boolean;
+  isModerator: boolean;
 }
 
 export type MemberRole = "MEMBER" | "MODERATOR";
 
 export interface ClassMember {
   id: string; // membership id, used for moderation calls
+  userId: string; // user id, used for moderation calls
   user: {
     id: string;
     username: string;
     avatarUrl: string | null;
+    role: "ADMIN" | "USER";
   };
   role: MemberRole;
-  isMuted: boolean;
-  isBanned: boolean;
+  isModerator: boolean;
+  muted: boolean;
+  banned: boolean;
 }
 
 export interface CreateClassPayload {

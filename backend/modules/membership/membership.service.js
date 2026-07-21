@@ -4,7 +4,7 @@ import { classesService } from "../classes/classes.service.js";
 import { userService } from "../user/user.service.js";
 import userRepository from "../user/user.repository.js";
 import { classesRepository } from "../classes/classes.repository.js";
-import { ConflictError, NotFoundError } from "../../utils/ApiError.js";
+import { ConflictError, ForbiddenError, NotFoundError } from "../../utils/ApiError.js";
 
 export const membershipService = {
     getMembership: async (userId, classId) => {
@@ -55,6 +55,11 @@ export const membershipService = {
             throw new NotFoundError("Member not found");
         }
 
+        //cannot change status of admin
+        if (targetMembership.user.role === "ADMIN") {
+            throw new ForbiddenError("You cannot update the status of an admin");
+        }
+
         // Cannot modify yourself
         if (targetMembership.userId === currentUser.id) {
             throw new ForbiddenError("You cannot update your own status");
@@ -62,9 +67,9 @@ export const membershipService = {
 
         // If not a global admin, must be a moderator of this class
         if (currentUser.role !== "ADMIN") {
-            const actorMembership = await membershipRepository.getMembershipByUserId(
-                classId,
-                currentUser.id
+            const actorMembership = await membershipRepository.getMembership(
+                currentUser.id,
+                classId
             );
 
             if (!actorMembership || !actorMembership.isModerator) {
@@ -110,16 +115,22 @@ export const membershipService = {
         );
     },
     forceRemoveMembership: async (classId, memberId, currentUser) => {
+        
         // Ensure class exists
         const classEntity = await classesRepository.getClassById(classId);
         if (!classEntity) {
             throw new NotFoundError("Class not found");
         }
-
+        
         // Target membership
         const targetMembership = await membershipRepository.getMembership(memberId, classId);
         if (!targetMembership) {
             throw new NotFoundError("Member not found");
+        }
+        
+        //cannot force remove an admin
+        if (targetMembership.user.role === "ADMIN") {
+            throw new ForbiddenError("You cannot force exit an admin");
         }
 
         // Cannot modify yourself

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { classService } from "@/services/class.service";
 import { ClassMember, ModerateMemberPayload } from "@/types/class";
+import { toast } from "sonner";
 
 export function useMembers(classId: string) {
   return useQuery({
@@ -28,6 +29,10 @@ export function useModerateMember(classId: string) {
         ["classes", classId, "members"],
         (old) => old?.map((m) => (m.id === updatedMember.id ? updatedMember : m))
       );
+    },
+    onError: (error) => {
+      console.error("Failed to moderate member:", error);
+      toast.error("Failed to moderate member: " + (error as Error).message);
     },
   });
 }

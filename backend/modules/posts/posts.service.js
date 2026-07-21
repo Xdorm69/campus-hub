@@ -30,7 +30,7 @@ import { ForbiddenError } from "../../utils/ApiError.js";
     updatePost: async (userId, postId, postData) => {
         //check if user is the owner of the post
         const post = await postsRepository.getPostById(postId);
-        if (post.userId !== userId) {
+        if (post.authorId !== userId) {
             throw new ForbiddenError("You are not authorized to update this post");
         }
         const updatedPost = await postsRepository.updatePost(postId, postData);

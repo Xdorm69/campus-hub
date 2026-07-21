@@ -75,7 +75,14 @@ export const postsRepository = {
     },
     updatePost: async (postId, postData) => {
         try {
-            return await prisma.post.update({where: {id: postId}, data: postData});
+            return await prisma.post.update({where: {id: postId, deletedAt: null}, include: {
+                author: {
+                    select: {
+                        username: true,
+                        avatar: true
+                    }
+                }
+            }, data: postData});
         } catch (error) {
             handlePrismaError(error);
         }

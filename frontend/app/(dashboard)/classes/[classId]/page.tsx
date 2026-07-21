@@ -10,6 +10,7 @@ import { MembersPanel } from "@/features/classes/MembersPanel";
 import { useClass, useJoinClass, useLeaveClass } from "@/hooks/useClasses";
 import { useProfile } from "@/hooks/useProfile";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { cn } from "@/lib/utils";
 
 export default function ClassDetailsPage({
   params,
@@ -48,7 +49,7 @@ export default function ClassDetailsPage({
     );
   }
 
-  const canModerate = classItem.moderator || me?.role === "ADMIN";
+  const canModerate = classItem.isModerator || me?.role === "ADMIN";
   const isPending = join.isPending || leave.isPending;
 
   return (
@@ -56,6 +57,9 @@ export default function ClassDetailsPage({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="font-serif text-3xl font-semibold">{classItem.name}</h1>
+          <div className={cn("mt-1 text-sm px-2 py-1 bg-muted rounded w-fit font-sans text-muted-foreground", classItem.isModerator && "bg-primary text-primary-foreground")}>
+            {classItem.isModerator ? "Moderator" : "Member"}
+          </div>
           <p className="mt-1 max-w-2xl text-muted-foreground">{classItem.description}</p>
         </div>
 
