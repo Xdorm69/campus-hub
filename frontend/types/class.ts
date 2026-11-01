@@ -1,39 +1,51 @@
-export interface ClassSummary {
+import { UserSummary } from "./user";
+
+/** A class as seen by the current user. */
+export interface ClassRoom {
   id: string;
+  code: string;
   name: string;
   description: string;
   memberCount: number;
-  isMember: boolean;
+  lastMessageAt: string | null;
   createdAt: string;
+  isMember: boolean;
+  isModerator: boolean;
+  isMuted: boolean;
+  isBanned: boolean;
+  /** Moderator of this class, or a global admin. */
+  canModerate: boolean;
 }
 
-export interface ClassDetails extends ClassSummary {
-  isModerator: boolean;
+/** Sidebar entry from `/users/me/classes`. */
+export interface JoinedClass extends ClassRoom {
+  unreadCount: number;
 }
 
 export type MemberRole = "MEMBER" | "MODERATOR";
 
 export interface ClassMember {
-  id: string; // membership id, used for moderation calls
-  userId: string; // user id, used for moderation calls
-  user: {
-    id: string;
-    username: string;
-    avatarUrl: string | null;
-    role: "ADMIN" | "USER";
-  };
-  role: MemberRole;
+  /** Membership id. */
+  id: string;
+  /** User id; moderation endpoints are addressed by this. */
+  userId: string;
+  user: UserSummary & { bio: string | null };
   isModerator: boolean;
   muted: boolean;
   banned: boolean;
+  joinedAt: string;
 }
 
 export interface CreateClassPayload {
+  code: string;
   name: string;
-  description: string;
+  description?: string;
 }
 
-export type UpdateClassPayload = Partial<CreateClassPayload>;
+export interface UpdateClassPayload {
+  name?: string;
+  description?: string;
+}
 
 export interface ModerateMemberPayload {
   isMuted?: boolean;

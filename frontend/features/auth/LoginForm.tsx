@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AxiosError } from "axios";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useLogin } from "@/hooks/useAuth";
+import { getErrorMessage } from "@/lib/api-error";
 import { LoginFormValues, loginSchema } from "./schemas";
 
 export function LoginForm() {
@@ -20,35 +20,20 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (values: LoginFormValues) => {
-    login.mutate(values);
-  };
-
-  const serverError =
-    login.error instanceof AxiosError
-      ? login.error.response?.status === 401
-        ? "Incorrect email or password."
-        : "Something went wrong. Please try again."
-      : null;
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+    <form onSubmit={handleSubmit((values) => login.mutate(values))} className="space-y-5" noValidate>
+      <FormField id="email" label="Email" error={errors.email?.message}>
         <Input
           id="email"
           type="email"
           autoComplete="email"
           placeholder="you@university.edu"
+          autoFocus
           {...register("email")}
         />
-        {errors.email && (
-          <p className="text-sm text-destructive">{errors.email.message}</p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+      <FormField id="password" label="Password" error={errors.password?.message}>
         <Input
           id="password"
           type="password"
@@ -56,19 +41,20 @@ export function LoginForm() {
           placeholder="••••••••"
           {...register("password")}
         />
-        {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
-        )}
-      </div>
+      </FormField>
 
-      {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+      {login.isError && (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {getErrorMessage(login.error)}
+        </p>
+      )}
 
-      <Button type="submit" className="w-full" isLoading={login.isPending}>
+      <Button type="submit" className="w-full" size="lg" isLoading={login.isPending}>
         Log in
       </Button>
 
-      <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
+      <p className="text-sm text-muted-foreground">
+        Need an account?{" "}
         <Link href="/register" className="font-medium text-primary hover:underline">
           Register
         </Link>

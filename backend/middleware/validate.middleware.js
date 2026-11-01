@@ -1,42 +1,32 @@
-export const validate = (schema) => {
+import ApiError from "../utils/ApiError.js";
 
+/**
+ * Validates `req[source]` against a zod schema.
+ *
+ * Parsed body replaces `req.body`. Express 5 makes `req.query` read-only, so
+ * parsed query/params are exposed on `req.validated[source]` instead.
+ *
+ * Failures are thrown (not responded to directly) so the error handler can
+ * also clean up any files multer already wrote for this request.
+ */
+export const validate = (schema, source = "body") => {
     return (req, res, next) => {
-        req.log.debug("Validating request body", { body: req.body });
-
-        if (!req.body) {
-            req.log.warn("Request body missing");
-
-            return res.status(400).json({
-                success: false,
-                type: "ValidationError",
-                message: "Request body is required"
-            });
-        }
-
-        const result = schema.safeParse(req.body);
+        const result = schema.safeParse(req[source] ?? {});
 
         if (!result.success) {
-
-            
-            const errors = result.error.issues.map(issue => ({
+            const errors = result.error.issues.map((issue) => ({
                 field: issue.path.join("."),
                 message: issue.message,
             }));
-            
-            req.log.error({ errors });
 
-            return res.status(400).json({
-                success: false,
-                type: "ZodValidationError",
-                errors
-            });
-
+            const error = new ApiError(400, "ZodValidationError", errors[0]?.message ?? "Invalid request");
+            error.errors = errors;
+            throw error;
         }
 
-        req.body = result.data;
+        req.validated = { ...req.validated, [source]: result.data };
+        if (source === "body") req.body = result.data;
 
         next();
-
     };
-
 };

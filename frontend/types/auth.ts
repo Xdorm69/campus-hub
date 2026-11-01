@@ -1,15 +1,4 @@
-import { User } from "./user";
-
-export interface ApiResponse<T> {
-  success: true;
-  message: string;
-  data: T;
-}
-
-export interface ApiErrorResponse {
-  success: false;
-  message: string;
-}
+import { CurrentUser } from "./user";
 
 export interface LoginPayload {
   email: string;
@@ -23,6 +12,5 @@ export interface RegisterPayload {
 }
 
 export interface AuthResponse {
-  user: User;
-  accessToken: string;
+  user: CurrentUser;
 }

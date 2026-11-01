@@ -1,17 +1,21 @@
 import express from "express";
-import { asyncHandler } from "../../utils/asyncHandler.js";
 import authenticate from "../../middleware/authenticate.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
+import { uploadAvatar } from "../../middleware/upload.middleware.js";
+import { objectIdParam } from "../../middleware/params.middleware.js";
 import { userProfileUpdateSchema } from "./user.validator.js";
-import authorize from "../../middleware/authorize.middleware.js";
 import { userController } from "./user.controller.js";
 
 const userRouter = express.Router();
 
-userRouter.get("/me", authenticate , asyncHandler(userController.getProfile))
-userRouter.patch("/me", authenticate, validate(userProfileUpdateSchema), asyncHandler(userController.updateProfile))
-userRouter.get("/me/classes", authenticate, asyncHandler(userController.getUserClasses))
-userRouter.get("/me/posts", authenticate, asyncHandler(userController.getUserPosts));
-userRouter.get("/:id", authenticate, authorize("ADMIN"), asyncHandler(userController.getProfileById))
+userRouter.use(authenticate);
+userRouter.param("id", objectIdParam);
+
+userRouter.get("/me", userController.getProfile);
+userRouter.patch("/me", validate(userProfileUpdateSchema), userController.updateProfile);
+userRouter.put("/me/avatar", uploadAvatar, userController.updateAvatar);
+userRouter.delete("/me/avatar", userController.removeAvatar);
+userRouter.get("/me/classes", userController.getUserClasses);
+userRouter.get("/:id", userController.getProfileById);
 
 export default userRouter;

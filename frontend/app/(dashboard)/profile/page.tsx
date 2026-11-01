@@ -1,55 +1,47 @@
 "use client";
 
-import { AlertCircle } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useProfile } from "@/hooks/useProfile";
+import { Settings } from "lucide-react";
+import { PageBody, PageHeader } from "@/components/layout/PageHeader";
+import { Badge } from "@/components/ui/badge";
+import { AvatarUploader } from "@/features/profile/AvatarUploader";
 import { ProfileForm } from "@/features/profile/ProfileForm";
+import { useProfile } from "@/hooks/useProfile";
+import { formatDate } from "@/lib/format";
+import { colorFromSeed } from "@/lib/utils";
 
 export default function ProfilePage() {
-  const { data: user, isLoading, isError } = useProfile();
-
-  if (isLoading) {
-    return (
-      <div className="mx-auto max-w-xl space-y-6">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    );
-  }
-
-  if (isError || !user) {
-    return (
-      <div className="mx-auto flex max-w-xl flex-col items-center gap-2 rounded-lg border border-border py-16 text-center">
-        <AlertCircle className="h-8 w-8 text-destructive" />
-        <p className="font-medium">Couldn&apos;t load your profile.</p>
-        <p className="text-sm text-muted-foreground">Refresh the page to try again.</p>
-      </div>
-    );
-  }
-
-  const initials = user.username.slice(0, 2).toUpperCase();
+  // The dashboard layout only renders once the profile has loaded.
+  const { data: user } = useProfile();
+  if (!user) return null;
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="font-serif text-3xl font-semibold">Your profile</h1>
+    <>
+      <PageHeader icon={<Settings className="h-5 w-5" />} title="My account" />
 
-      <Card>
-        <CardHeader className="flex-row items-center gap-4 space-y-0">
-          <Avatar className="h-14 w-14">
-            <AvatarImage src={user.avatarUrl ?? undefined} alt={user.username} />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-          <div>
-            <CardTitle>{user.username}</CardTitle>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+      <PageBody className="max-w-2xl">
+        <div className="overflow-hidden rounded-lg bg-card ring-1 ring-border">
+          <div className="h-24" style={{ backgroundColor: colorFromSeed(user.id) }} />
+
+          <div className="px-4 pb-4 md:px-6">
+            <div className="-mt-12 flex flex-wrap items-end justify-between gap-4">
+              <AvatarUploader user={user} />
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-bold">{user.username}</h2>
+              {user.role === "ADMIN" && <Badge variant="destructive">Admin</Badge>}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {user.email} · Joined {formatDate(user.createdAt)}
+            </p>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+
+        <section className="mt-6 rounded-lg bg-card p-4 ring-1 ring-border md:p-6">
+          <h3 className="mb-4 text-lg font-semibold">Profile</h3>
           <ProfileForm user={user} />
-        </CardContent>
-      </Card>
-    </div>
+        </section>
+      </PageBody>
+    </>
   );
 }

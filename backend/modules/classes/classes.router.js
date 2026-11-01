@@ -1,30 +1,52 @@
 import express from "express";
-import { asyncHandler } from "../../utils/asyncHandler.js";
 import authenticate from "../../middleware/authenticate.middleware.js";
-import {classesController} from "./classes.controller.js";
 import authorize from "../../middleware/authorize.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
-import { createClassSchema, updateClassSchema, updateUserRoleSchema } from "./classes.validator.js";
+import { objectIdParam } from "../../middleware/params.middleware.js";
+import { ROLES } from "../../constants/roles.js";
+import messagesRouter from "../messages/messages.router.js";
+import { classesController } from "./classes.controller.js";
+import {
+    createClassSchema,
+    listClassesQuerySchema,
+    updateClassSchema,
+    updateMemberStatusSchema,
+} from "./classes.validator.js";
 
 const classesRouter = express.Router();
 
-//USER
-classesRouter.get("/", authenticate ,asyncHandler(classesController.getClasses));
-classesRouter.get("/:id", authenticate ,asyncHandler(classesController.getClassById));
-classesRouter.post("/:classId/join", authenticate, asyncHandler(classesController.joinClass));
-classesRouter.get("/:classId/members", authenticate, asyncHandler(classesController.getClassMembers));
-classesRouter.post("/:classId/leave", authenticate, asyncHandler(classesController.leaveClass));
-//ADMIN
-classesRouter.post("/", authenticate, authorize("ADMIN"), validate(createClassSchema),  asyncHandler(classesController.createClass));
-classesRouter.patch("/:id", authenticate, authorize("ADMIN"), validate(updateClassSchema), asyncHandler(classesController.updateClass));
-classesRouter.delete("/:id", authenticate, authorize("ADMIN"), asyncHandler(classesController.deleteClass));
+classesRouter.use(authenticate);
+classesRouter.param("classId", objectIdParam);
+classesRouter.param("memberId", objectIdParam);
 
-// ban / unban - mute / unmute - up / down mod;
-classesRouter.patch("/:classId/members/:memberId", authenticate, validate(updateUserRoleSchema), asyncHandler(classesController.updateUserStatus));
-// force exit a room
-classesRouter.delete("/:classId/members/:memberId", authenticate, authorize("ADMIN"), asyncHandler(classesController.forceExitRoom));
+// Browsing & membership
+classesRouter.get("/", validate(listClassesQuerySchema, "query"), classesController.getClasses);
+classesRouter.get("/:classId", classesController.getClassById);
+classesRouter.post("/:classId/join", classesController.joinClass);
+classesRouter.post("/:classId/leave", classesController.leaveClass);
+classesRouter.post("/:classId/read", classesController.markRead);
 
-// get posts in a classroom [this is paginated];
-classesRouter.get("/:classId/feed", authenticate, asyncHandler(classesController.getClassFeed));
+// Members & moderation (mute / ban / promote / kick). Moderators and admins;
+// fine-grained rules live in membership.service.
+classesRouter.get("/:classId/members", classesController.getClassMembers);
+classesRouter.patch(
+    "/:classId/members/:memberId",
+    validate(updateMemberStatusSchema),
+    classesController.updateMemberStatus
+);
+classesRouter.delete("/:classId/members/:memberId", classesController.removeMember);
+
+// Chat messages
+classesRouter.use("/:classId/messages", messagesRouter);
+
+// Admin only
+classesRouter.post("/", authorize(ROLES.ADMIN), validate(createClassSchema), classesController.createClass);
+classesRouter.patch(
+    "/:classId",
+    authorize(ROLES.ADMIN),
+    validate(updateClassSchema),
+    classesController.updateClass
+);
+classesRouter.delete("/:classId", authorize(ROLES.ADMIN), classesController.deleteClass);
 
 export default classesRouter;

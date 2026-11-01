@@ -1,40 +1,42 @@
-import { ApiErrorResponse } from "@/types/auth";
 import axios, { AxiosError } from "axios";
+import { ApiErrorResponse } from "@/types/api";
+import { ApiError } from "./api-error";
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000",
+  // Must include the version prefix, e.g. http://localhost:4000/api/v1
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1",
   withCredentials: true, // send the HTTP-only JWT cookie on every request
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
+const PUBLIC_PATHS = ["/login", "/register"];
 
-// Central place to react to auth/network failures without repeating
-// try/catch boilerplate in every hook or component.
+// One place that turns transport/HTTP failures into an ApiError and reacts to
+// an expired session, so hooks and components never deal with AxiosError.
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<ApiErrorResponse>) => {
+    if (axios.isCancel(error)) return Promise.reject(error);
+
     if (!error.response) {
-      return Promise.reject(new Error("Unable to reach server"));
+      return Promise.reject(new ApiError("Unable to reach the server. Check your connection."));
     }
 
-    if (error.response.status === 401) {
-      if (
-        typeof window !== "undefined" &&
-        !window.location.pathname.startsWith("/login") &&
-        !window.location.pathname.startsWith("/register")
-      ) {
-        window.location.replace(
-          `/login?from=${encodeURIComponent(window.location.pathname)}`
-        );
-      }
+    const { status, data } = error.response;
 
-      return Promise.reject(error);
+    if (status === 401 && typeof window !== "undefined") {
+      const { pathname } = window.location;
+      if (!PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
+        window.location.replace(`/login?from=${encodeURIComponent(pathname)}`);
+      }
     }
 
     return Promise.reject(
-      new Error(error.response.data.message)
+      new ApiError(
+        data?.message ?? error.message,
+        status,
+        data?.type ?? "HttpError",
+        data?.errors ?? []
+      )
     );
   }
 );

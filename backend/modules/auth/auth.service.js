@@ -1,106 +1,51 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-
-import authRepository from "./auth.repository.js";
 import { envConfig } from "../../config/env.js";
+import { ConflictError, UnauthorizedError } from "../../utils/ApiError.js";
+import userRepository from "../user/user.repository.js";
+import { toUserDTO } from "../user/user.mapper.js";
 
-import {
-    ConflictError,
-    UnauthorizedError,
-} from "../../utils/ApiError.js";
+function issueToken(user) {
+    return jwt.sign({ sub: String(user._id), role: user.role }, envConfig.JWT_SECRET, {
+        expiresIn: envConfig.JWT_EXPIRES_IN_HOURS * 60 * 60,
+    });
+}
 
 const authService = {
-
-    async register(userData) {
-
-        const existingUser = await authRepository.findByEmailOrUsername({
-            email: userData.email,
-            username: userData.username,
-        });
+    async register({ username, email, password }) {
+        const existingUser = await userRepository.findByEmailOrUsername({ email, username });
 
         if (existingUser) {
-
-            if (existingUser.email === userData.email) {
+            if (existingUser.email === email) {
                 throw new ConflictError("Email is already registered.");
             }
-
             throw new ConflictError("Username is already taken.");
         }
 
-        const hashedPassword = await bcrypt.hash(
-            userData.password,
-            Number(envConfig.BCRYPT_ROUNDS) || 10
-        );
-
-        const createdUser = await authRepository.create({
-            ...userData,
-            password: hashedPassword,
-        });
-
-        const token = jwt.sign(
-            {
-                sub: createdUser.id,
-                role: createdUser.role,
-            },
-            envConfig.JWT_SECRET,
-            {
-                expiresIn: envConfig.JWT_EXPIRES_IN || "1h",
-            }
-        );
+        const hashedPassword = await bcrypt.hash(password, envConfig.BCRYPT_ROUNDS);
+        const user = await userRepository.create({ username, email, password: hashedPassword });
 
         return {
-            user: {
-                id: createdUser.id,
-                username: createdUser.username,
-                email: createdUser.email,
-                role: createdUser.role,
-                verified: createdUser.verified,
-                createdAt: createdUser.createdAt,
-            },
-            token,
+            user: toUserDTO(user, { includePrivate: true }),
+            token: issueToken(user),
         };
     },
 
     async login({ email, password }) {
+        const user = await userRepository.findByEmail(email, { withPassword: true });
 
-        const user = await authRepository.findByEmail(email);
-
-        if (!user) {
-            throw new UnauthorizedError("Invalid email or password.");
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-            password,
-            user.password
-        );
-
+        // Same message for both cases so the endpoint can't be used to
+        // discover which emails are registered.
+        const isPasswordValid = user && (await bcrypt.compare(password, user.password));
         if (!isPasswordValid) {
             throw new UnauthorizedError("Invalid email or password.");
         }
 
-        const token = jwt.sign(
-            {
-                sub: user.id,
-                role: user.role,
-            },
-            envConfig.JWT_SECRET,
-            {
-                expiresIn: envConfig.JWT_EXPIRES_IN || "1h",
-            }
-        );
-
         return {
-            user: {
-                id: user.id,
-                username: user.username,
-                email: user.email,
-                role: user.role,
-                verified: user.verified,
-            },
-            token,
+            user: toUserDTO(user, { includePrivate: true }),
+            token: issueToken(user),
         };
     },
-
 };
 
 export default authService;

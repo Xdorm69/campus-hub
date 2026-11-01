@@ -1,54 +1,26 @@
-import prisma from "../../config/prisma.js"
-import { handlePrismaError } from "../../utils/prismaErrorHandler.js";
+import { User } from "../../models/index.js";
 
 const userRepository = {
-    findById: async (id) => {
-        try {
-            const profile = await prisma.user.findUnique({
-                where: {
-                    id
-                },
-                select: {
-                    id: true,
-                    username: true,
-                    email: true,
-                    bio: true,
-                    avatar: true,
-                    verified: true,
-                    role: true,
-                    createdAt: true,
-                    updatedAt: true
-                }
-            });
-            return profile;
-        } catch (error) {
-            handlePrismaError(error);
-        }
+    findById: (id) => User.findById(id).lean(),
+
+    findByEmail: (email, { withPassword = false } = {}) => {
+        const query = User.findOne({ email });
+        if (withPassword) query.select("+password");
+        return query.lean();
     },
-    updateProfile: async (id, data) => {
-        try {
-            const updatedProfile = await prisma.user.update({
-                where: {
-                    id
-                },
-                select: {
-                    id: true,
-                    username: true,
-                    email: true,
-                    bio: true,
-                    avatar: true,
-                    verified: true,
-                    role: true,
-                    createdAt: true,
-                    updatedAt: true
-                },
-                data
-            });
-            return updatedProfile;
-        } catch (error) {
-            handlePrismaError(error);
-        }
-    }
-}
+
+    findByEmailOrUsername: ({ email, username }) =>
+        User.findOne({ $or: [{ email }, { username }] }).lean(),
+
+    findByUsername: (username) => User.findOne({ username }).lean(),
+
+    create: async (data) => {
+        const user = await User.create(data);
+        return user.toObject();
+    },
+
+    updateById: (id, data) =>
+        User.findByIdAndUpdate(id, data, { returnDocument: "after", runValidators: true }).lean(),
+};
 
 export default userRepository;

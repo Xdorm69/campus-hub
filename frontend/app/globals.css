@@ -2,65 +2,98 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Palette follows Discord's layering (darkest rail -> sidebar -> chat) with
+ * Slack-style light mode. Values are HSL triplets consumed via hsl(var(--x)).
+ */
 @layer base {
   :root {
-    --background: 40 30% 97%;
-    --foreground: 150 15% 12%;
+    --background: 0 0% 100%;
+    --foreground: 223 7% 21%;
 
-    --card: 40 25% 99%;
-    --card-foreground: 150 15% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 223 7% 21%;
 
-    --primary: 150 45% 22%;
-    --primary-foreground: 45 40% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 223 7% 21%;
 
-    --secondary: 150 20% 92%;
-    --secondary-foreground: 150 25% 18%;
+    --primary: 235 86% 65%;
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 40 15% 91%;
-    --muted-foreground: 150 8% 40%;
+    --secondary: 220 9% 89%;
+    --secondary-foreground: 223 7% 21%;
 
-    --accent: 28 65% 48%;
-    --accent-foreground: 40 40% 97%;
+    --muted: 220 13% 95%;
+    --muted-foreground: 228 5% 40%;
 
-    --destructive: 4 65% 45%;
-    --destructive-foreground: 40 40% 97%;
+    --accent: 220 13% 95%;
+    --accent-foreground: 223 7% 21%;
 
-    --border: 150 12% 85%;
-    --input: 150 12% 85%;
-    --ring: 150 45% 22%;
+    --destructive: 358 69% 52%;
+    --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.6rem;
+    --success: 145 63% 36%;
+    --warning: 38 92% 45%;
+
+    --border: 216 10% 88%;
+    --input: 220 13% 94%;
+    --ring: 235 86% 65%;
+
+    --sidebar: 220 13% 96%;
+    --sidebar-foreground: 228 5% 32%;
+    --sidebar-accent: 220 9% 88%;
+    --sidebar-accent-foreground: 223 7% 15%;
+    --sidebar-panel: 220 11% 92%;
+
+    --radius: 0.5rem;
   }
 
   .dark {
-    --background: 150 20% 8%;
-    --foreground: 45 25% 92%;
+    --background: 223 7% 21%;
+    --foreground: 210 9% 87%;
 
-    --card: 150 18% 11%;
-    --card-foreground: 45 25% 92%;
+    --card: 220 7% 18%;
+    --card-foreground: 210 9% 87%;
 
-    --primary: 150 40% 62%;
-    --primary-foreground: 150 25% 10%;
+    --popover: 225 6% 13%;
+    --popover-foreground: 210 9% 87%;
 
-    --secondary: 150 15% 16%;
-    --secondary-foreground: 45 25% 92%;
+    --primary: 235 86% 65%;
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 150 12% 16%;
-    --muted-foreground: 150 8% 62%;
+    --secondary: 225 7% 27%;
+    --secondary-foreground: 210 9% 87%;
 
-    --accent: 28 70% 58%;
-    --accent-foreground: 150 25% 10%;
+    --muted: 220 7% 18%;
+    --muted-foreground: 214 6% 61%;
 
-    --destructive: 4 60% 55%;
-    --destructive-foreground: 40 40% 97%;
+    --accent: 223 7% 19%;
+    --accent-foreground: 210 9% 92%;
 
-    --border: 150 12% 20%;
-    --input: 150 12% 20%;
-    --ring: 150 40% 62%;
+    --destructive: 358 69% 56%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 145 65% 39%;
+    --warning: 40 86% 57%;
+
+    --border: 225 6% 26%;
+    --input: 225 7% 24%;
+    --ring: 235 86% 65%;
+
+    --sidebar: 220 7% 18%;
+    --sidebar-foreground: 214 6% 61%;
+    --sidebar-accent: 225 7% 27%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-panel: 228 7% 15%;
   }
 
   * {
     @apply border-border;
+  }
+
+  html,
+  body {
+    height: 100%;
   }
 
   body {
@@ -68,8 +101,30 @@
     font-feature-settings: "cv11", "ss01";
   }
 
-  h1, h2, h3, h4 {
-    font-family: var(--font-serif);
-    letter-spacing: -0.01em;
+  /* Thin, unobtrusive scrollbars like Discord's. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  }
+}
+
+@layer utilities {
+  .bg-auth-gradient {
+    background-image: radial-gradient(circle at 20% 20%, hsl(235 86% 65% / 0.55), transparent 45%),
+      radial-gradient(circle at 80% 80%, hsl(280 70% 55% / 0.45), transparent 45%),
+      linear-gradient(135deg, hsl(235 40% 22%), hsl(250 35% 14%));
+  }
+
+  .message-highlight {
+    animation: message-highlight 1.6s ease-out;
+  }
+
+  @keyframes message-highlight {
+    from {
+      background-color: hsl(var(--primary) / 0.25);
+    }
+    to {
+      background-color: transparent;
+    }
   }
 }

@@ -1,16 +1,16 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Suspense } from "react";
 import { RegisterForm } from "@/features/auth/RegisterForm";
 
 export default function RegisterPage() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create your account</CardTitle>
-        <CardDescription>Join your classes and start posting in minutes.</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <>
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl font-bold">Create an account</h1>
+        <p className="mt-1 text-muted-foreground">Join your classes and start chatting in minutes.</p>
+      </div>
+      <Suspense>
         <RegisterForm />
-      </CardContent>
-    </Card>
+      </Suspense>
+    </>
   );
 }

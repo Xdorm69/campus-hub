@@ -1,15 +1,21 @@
 "use client";
 
-import * as React from "react";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  description: string;
+  description: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
@@ -29,37 +35,28 @@ export function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 animate-in fade-in-0" />
-        <DialogPrimitive.Content
-          className={cn(
-            "fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-card p-6 shadow-lg animate-in fade-in-0 zoom-in-95"
-          )}
-        >
-          <DialogPrimitive.Title className="font-serif text-lg font-semibold">
-            {title}
-          </DialogPrimitive.Title>
-          <DialogPrimitive.Description className="mt-2 text-sm text-muted-foreground">
-            {description}
-          </DialogPrimitive.Description>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm" hideClose>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
 
-          <div className="mt-6 flex justify-end gap-2">
-            <DialogPrimitive.Close asChild>
-              <Button variant="outline" disabled={isLoading}>
-                {cancelLabel}
-              </Button>
-            </DialogPrimitive.Close>
-            <Button
-              variant={destructive ? "destructive" : "default"}
-              isLoading={isLoading}
-              onClick={onConfirm}
-            >
-              {confirmLabel}
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="ghost" disabled={isLoading}>
+              {cancelLabel}
             </Button>
-          </div>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+          </DialogClose>
+          <Button
+            variant={destructive ? "destructive" : "default"}
+            isLoading={isLoading}
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,34 +1,44 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authService } from "@/services/auth.service";
-import { LoginPayload, RegisterPayload } from "@/types/auth";
-import { toast } from "sonner";
+import { queryKeys } from "@/lib/query-keys";
+import { AuthResponse, LoginPayload, RegisterPayload } from "@/types/auth";
 
-export function useLogin() {
+/** Only follow same-origin relative paths from ?from=, never full URLs. */
+function useRedirectTarget() {
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
+  return from && from.startsWith("/") && !from.startsWith("//") ? from : "/";
+}
+
+function useOnAuthenticated() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const redirectTo = useRedirectTarget();
+
+  return ({ user }: AuthResponse) => {
+    queryClient.setQueryData(queryKeys.me, user);
+    router.replace(redirectTo);
+  };
+}
+
+export function useLogin() {
+  const onAuthenticated = useOnAuthenticated();
 
   return useMutation({
     mutationFn: (payload: LoginPayload) => authService.login(payload),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["me"], data.user);
-      router.push("/");
-    },
+    onSuccess: onAuthenticated,
   });
 }
 
 export function useRegister() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
+  const onAuthenticated = useOnAuthenticated();
 
   return useMutation({
     mutationFn: (payload: RegisterPayload) => authService.register(payload),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["me"], data.user);
-      router.push("/");
-    },
+    onSuccess: onAuthenticated,
   });
 }
 
@@ -38,9 +48,9 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: () => authService.logout(),
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.clear();
-      router.push("/login");
+      router.replace("/login");
     },
   });
 }

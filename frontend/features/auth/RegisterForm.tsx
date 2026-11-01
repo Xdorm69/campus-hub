@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AxiosError } from "axios";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useRegister } from "@/hooks/useAuth";
+import { getErrorMessage } from "@/lib/api-error";
 import { RegisterFormValues, registerSchema } from "./schemas";
 
 export function RegisterForm() {
@@ -20,44 +20,28 @@ export function RegisterForm() {
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = (values: RegisterFormValues) => {
-    const { confirmPassword, ...payload } = values;
+  const onSubmit = ({ confirmPassword: _confirm, ...payload }: RegisterFormValues) => {
     registerUser.mutate(payload);
   };
 
-  const serverError =
-    registerUser.error instanceof AxiosError
-      ? registerUser.error.response?.status === 409
-        ? "That email or username is already taken."
-        : "Something went wrong. Please try again."
-      : null;
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-      <div className="space-y-2">
-        <Label htmlFor="username">Username</Label>
-        <Input id="username" autoComplete="username" placeholder="jane_doe" {...register("username")} />
-        {errors.username && (
-          <p className="text-sm text-destructive">{errors.username.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+      <FormField id="email" label="Email" error={errors.email?.message}>
         <Input
           id="email"
           type="email"
           autoComplete="email"
           placeholder="you@university.edu"
+          autoFocus
           {...register("email")}
         />
-        {errors.email && (
-          <p className="text-sm text-destructive">{errors.email.message}</p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+      <FormField id="username" label="Username" error={errors.username?.message}>
+        <Input id="username" autoComplete="username" placeholder="jane_doe" {...register("username")} />
+      </FormField>
+
+      <FormField id="password" label="Password" error={errors.password?.message}>
         <Input
           id="password"
           type="password"
@@ -65,13 +49,9 @@ export function RegisterForm() {
           placeholder="At least 8 characters"
           {...register("password")}
         />
-        {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
-        )}
-      </div>
+      </FormField>
 
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm password</Label>
+      <FormField id="confirmPassword" label="Confirm password" error={errors.confirmPassword?.message}>
         <Input
           id="confirmPassword"
           type="password"
@@ -79,18 +59,19 @@ export function RegisterForm() {
           placeholder="Re-enter your password"
           {...register("confirmPassword")}
         />
-        {errors.confirmPassword && (
-          <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
-        )}
-      </div>
+      </FormField>
 
-      {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+      {registerUser.isError && (
+        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {getErrorMessage(registerUser.error)}
+        </p>
+      )}
 
-      <Button type="submit" className="w-full" isLoading={registerUser.isPending}>
-        Create account
+      <Button type="submit" className="w-full" size="lg" isLoading={registerUser.isPending}>
+        Continue
       </Button>
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link href="/login" className="font-medium text-primary hover:underline">
           Log in

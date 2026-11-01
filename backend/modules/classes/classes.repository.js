@@ -1,56 +1,30 @@
-
-import prisma from "../../config/prisma.js";
-import {handlePrismaError} from "../../utils/prismaErrorHandler.js";
+import { ClassRoom } from "../../models/index.js";
+import { escapeRegex } from "../../utils/validators.js";
 
 export const classesRepository = {
-    getClasses: async () => {
-        try {
-            return await prisma.class.findMany();
-        } catch (error) {
-            handlePrismaError(error);
+    findById: (classId) => ClassRoom.findById(classId).lean(),
+
+    findByIds: (classIds) => ClassRoom.find({ _id: { $in: classIds } }).lean(),
+
+    list: ({ search } = {}) => {
+        const filter = {};
+        if (search) {
+            const pattern = new RegExp(escapeRegex(search), "i");
+            filter.$or = [{ name: pattern }, { code: pattern }, { description: pattern }];
         }
+        return ClassRoom.find(filter).sort({ name: 1 }).lean();
     },
-    getClassById: async (classId) => {
-        try {
-            return await prisma.class.findUnique({
-                where: {
-                    id: classId
-                }
-            });
-        } catch (error) {
-            handlePrismaError(error);
-        }
+
+    create: async (data) => {
+        const created = await ClassRoom.create(data);
+        return created.toObject();
     },
-    createClass: async (data) => {
-        try {
-            return await prisma.class.create({
-                data
-            });
-        } catch (error) {
-            handlePrismaError(error);
-        }
-    },
-    updateClass: async (id, data) => {
-        try {
-            return await prisma.class.update({
-                where: {
-                    id
-                },
-                data
-            });
-        } catch (error) {
-            handlePrismaError(error);
-        }
-    },
-    deleteClass: async (id) => {
-        try {
-            return await prisma.class.delete({
-                where: {
-                    id
-                }
-            });
-        } catch (error) {
-            handlePrismaError(error);
-        }
-    }    
-}
+
+    update: (classId, data) =>
+        ClassRoom.findByIdAndUpdate(classId, data, { returnDocument: "after", runValidators: true }).lean(),
+
+    remove: (classId) => ClassRoom.findByIdAndDelete(classId).lean(),
+
+    touchLastMessage: (classId, date = new Date()) =>
+        ClassRoom.updateOne({ _id: classId }, { lastMessageAt: date }),
+};

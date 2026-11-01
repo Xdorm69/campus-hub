@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
-      <GraduationCap className="h-10 w-10 text-muted-foreground" />
-      <h1 className="font-serif text-2xl font-semibold">Page not found</h1>
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-3 px-4 text-center">
+      <GraduationCap className="h-12 w-12 text-primary" />
+      <h1 className="text-2xl font-bold">Page not found</h1>
       <p className="max-w-sm text-sm text-muted-foreground">
         The page you&apos;re looking for doesn&apos;t exist or may have moved.
       </p>
-      <Button><Link href="/">Back to dashboard</Link></Button>
+      <Button asChild>
+        <Link href="/">Back home</Link>
+      </Button>
     </div>
   );
 }

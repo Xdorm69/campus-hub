@@ -1,8 +1,28 @@
 import { envConfig } from "../config/env.js";
+import { connectDatabase, disconnectDatabase } from "../config/db.js";
+import { logger } from "../utils/logger.js";
 import app from "./app.js";
 
-const PORT = envConfig.PORT;
+async function start() {
+    await connectDatabase();
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port http://localhost:${PORT}`);
+    const server = app.listen(envConfig.PORT, () => {
+        logger.info(`Server is running on http://localhost:${envConfig.PORT}`);
+    });
+
+    const shutdown = (signal) => {
+        logger.info(`${signal} received, shutting down`);
+        server.close(async () => {
+            await disconnectDatabase();
+            process.exit(0);
+        });
+    };
+
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+}
+
+start().catch((error) => {
+    logger.fatal({ err: error }, "Failed to start server");
+    process.exit(1);
 });

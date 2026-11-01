@@ -1,35 +1,20 @@
-import z from 'zod';
+import { z } from "zod";
+import { usernameSchema } from "../../utils/validators.js";
 
-const registerSchema = z.object({
+const emailSchema = z.email("Enter a valid email").trim().toLowerCase();
 
-    username: z
-        .string()
-        .trim()
-        .min(3)
-        .max(20),
+const passwordSchema = z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(64, "Password must be 64 characters or fewer");
 
-    email: z
-        .email()
-        .toLowerCase(),
-
-    password: z
-        .string()
-        .min(8)
-        .max(32)
-
+export const registerSchema = z.object({
+    username: usernameSchema,
+    email: emailSchema,
+    password: passwordSchema,
 });
 
-const loginSchema = z.object({
-
-    email: z
-        .email()
-        .toLowerCase(),
-
-    password: z
-        .string()
-        .min(8)
-        .max(32)
-
+export const loginSchema = z.object({
+    email: emailSchema,
+    password: z.string().min(1, "Password is required").max(64),
 });
-
-export {registerSchema, loginSchema};

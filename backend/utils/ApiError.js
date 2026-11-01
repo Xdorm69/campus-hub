@@ -14,11 +14,9 @@ class ApiError extends Error {
 export default ApiError;
 
 class ValidationError extends ApiError {
-
     constructor(message = "Validation Error") {
         super(errorCodes.VALIDATION_ERROR, "ValidationError", message);
     }
-
 }
 class ConflictError extends ApiError {
     constructor(message = "Conflict Error") {
@@ -26,22 +24,22 @@ class ConflictError extends ApiError {
     }
 }
 class NotFoundError extends ApiError {
-    constructor(message="Not Found") {
+    constructor(message = "Not Found") {
         super(errorCodes.NOT_FOUND, "NotFoundError", message);
     }
 }
 class UnauthorizedError extends ApiError {
-    constructor(message="Unauthorized") {
+    constructor(message = "Unauthorized") {
         super(errorCodes.UNAUTHORIZED, "UnauthorizedError", message);
     }
 }
 class ForbiddenError extends ApiError {
-    constructor(message="Forbidden") {
+    constructor(message = "Forbidden") {
         super(errorCodes.FORBIDDEN, "ForbiddenError", message);
     }
 }
 class BadRequestError extends ApiError {
-    constructor(message="BadRequest") {
+    constructor(message = "Bad Request") {
         super(errorCodes.BAD_REQUEST, "BadRequestError", message);
     }
 }

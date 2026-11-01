@@ -1,84 +1,76 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useUpdateProfile } from "@/hooks/useProfile";
-import { User } from "@/types/user";
+import { getErrorMessage } from "@/lib/api-error";
+import { CurrentUser } from "@/types/user";
 import { ProfileFormValues, profileSchema } from "./schemas";
 
-export function ProfileForm({ user }: { user: User }) {
+export function ProfileForm({ user }: { user: CurrentUser }) {
   const updateProfile = useUpdateProfile();
-  const [justSaved, setJustSaved] = useState(false);
 
   const {
     register,
     handleSubmit,
+    reset,
+    watch,
     formState: { errors, isDirty },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      username: user.username,
-      bio: user.bio ?? "",
-      avatarUrl: user.avatarUrl ?? "",
-    },
+    defaultValues: { username: user.username, bio: user.bio ?? "" },
   });
 
-  useEffect(() => {
-    if (!justSaved) return;
-    const timeout = setTimeout(() => setJustSaved(false), 2500);
-    return () => clearTimeout(timeout);
-  }, [justSaved]);
+  const bioLength = watch("bio")?.length ?? 0;
 
   const onSubmit = (values: ProfileFormValues) => {
-    updateProfile.mutate(
-      { ...values, avatarUrl: values.avatarUrl || undefined },
-      { onSuccess: () => setJustSaved(true) }
-    );
+    updateProfile.mutate(values, {
+      // Re-baseline so the Save button disables again.
+      onSuccess: (updated) => reset({ username: updated.username, bio: updated.bio ?? "" }),
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-      <div className="space-y-2">
-        <Label htmlFor="username">Username</Label>
-        <Input id="username" {...register("username")} />
-        {errors.username && (
-          <p className="text-sm text-destructive">{errors.username.message}</p>
-        )}
-      </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+      <FormField id="username" label="Username" error={errors.username?.message}>
+        <Input id="username" autoComplete="username" {...register("username")} />
+      </FormField>
 
-      <div className="space-y-2">
-        <Label htmlFor="avatarUrl">Avatar URL</Label>
-        <Input id="avatarUrl" placeholder="https://..." {...register("avatarUrl")} />
-        {errors.avatarUrl && (
-          <p className="text-sm text-destructive">{errors.avatarUrl.message}</p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="bio">Bio</Label>
-        <textarea
+      <FormField
+        id="bio"
+        label="About me"
+        error={errors.bio?.message}
+        hint={`${bioLength}/280 — shown on your profile card.`}
+      >
+        <Textarea
           id="bio"
-          rows={3}
+          rows={4}
           maxLength={280}
-          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           placeholder="Tell your classmates a bit about yourself"
           {...register("bio")}
         />
-        {errors.bio && <p className="text-sm text-destructive">{errors.bio.message}</p>}
-      </div>
+      </FormField>
 
-      <div className="flex items-center gap-3">
+      {updateProfile.isError && (
+        <p className="text-sm text-destructive">{getErrorMessage(updateProfile.error)}</p>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={!isDirty}
+          onClick={() => reset()}
+        >
+          Reset
+        </Button>
         <Button type="submit" isLoading={updateProfile.isPending} disabled={!isDirty}>
           Save changes
         </Button>
-        {justSaved && <span className="text-sm text-primary">Saved.</span>}
-        {updateProfile.isError && (
-          <span className="text-sm text-destructive">Couldn&apos;t save. Try again.</span>
-        )}
       </div>
     </form>
   );

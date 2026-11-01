@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.string().min(1, "Email is required").email("Enter a valid email"),
+  email: z.string().trim().min(1, "Email is required").email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -11,11 +11,15 @@ export const registerSchema = z
   .object({
     username: z
       .string()
+      .trim()
       .min(3, "Username must be at least 3 characters")
-      .max(24, "Username must be 24 characters or fewer")
+      .max(20, "Username must be 20 characters or fewer")
       .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers, and underscores"),
-    email: z.string().min(1, "Email is required").email("Enter a valid email"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    email: z.string().trim().min(1, "Email is required").email("Enter a valid email"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(64, "Password must be 64 characters or fewer"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
   .refine((data) => data.password === data.confirmPassword, {

@@ -1,35 +1,31 @@
 "use client";
-import { Navbar } from "@/components/layout/Navbar";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useProfile } from "@/hooks/useProfile";
-import { Loader2 } from "lucide-react";
 
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { GraduationCap, Loader2 } from "lucide-react";
+import { AppShell } from "@/components/layout/AppShell";
+import { useProfile } from "@/hooks/useProfile";
+
+function FullScreenLoader() {
+  return (
+    <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-sidebar-panel">
+      <GraduationCap className="h-12 w-12 animate-pulse text-primary" />
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
+/** Client-side auth guard (the JWT cookie is httpOnly on the API origin). */
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: user, isLoading, isError } = useProfile();
 
   useEffect(() => {
-    if (isError) {
-      router.replace("/login");
-    }
-  }, [isError, router]);
+    if (isError) router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+  }, [isError, router, pathname]);
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
-    );
-  }
+  if (isLoading || !user) return <FullScreenLoader />;
 
-  if (!user) {
-    return null; // Redirect is happening
-  }
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="container py-8">{children}</main>
-    </div>
-  );
+  return <AppShell>{children}</AppShell>;
 }

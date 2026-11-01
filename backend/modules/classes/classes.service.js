@@ -1,55 +1,110 @@
+import { ROLES } from "../../constants/roles.js";
 import { NotFoundError } from "../../utils/ApiError.js";
+import { removeUploads } from "../../utils/files.js";
 import { membershipRepository } from "../membership/membership.repository.js";
+import { membershipService } from "../membership/membership.service.js";
+import { messagesRepository } from "../messages/messages.repository.js";
 import { classesRepository } from "./classes.repository.js";
+import { toClassDTO } from "./classes.mapper.js";
+
+const isAdmin = (user) => user.role === ROLES.ADMIN;
 
 export const classesService = {
-    getClasses: async (userId) => {
-    const allClasses = await classesRepository.getClasses();
+    listClasses: async (user, { search } = {}) => {
+        const [classes, memberCounts, memberships] = await Promise.all([
+            classesRepository.list({ search }),
+            membershipRepository.countActiveByClass(),
+            membershipRepository.findByUser(user.id),
+        ]);
 
-    if (allClasses.length === 0) {
-        return [];
-    }
+        const membershipByClass = new Map(memberships.map((m) => [String(m.class), m]));
 
-    const userClasses = await membershipRepository.getUserClasses(userId);
-
-    const memberClassIds = new Set(
-        userClasses.map(cls => cls.classId)
-    );
-
-    return allClasses.map(cls => ({
-        ...cls,
-        isMember: memberClassIds.has(cls.id),
-    }));
-},
-    getClassById: async (userId, classId) => {
-        const classEl = await classesRepository.getClassById(classId);
-        if (!classEl) throw new NotFoundError("Class not found");
-
-        //valiation user role inside that class;
-        const userClassEl = await membershipRepository.getMembership(userId, classId);
-
-        //attaching role
-        return {...classEl, isMember: !!userClassEl, isModerator: userClassEl?.isModerator || false};
+        return classes.map((classDoc) =>
+            toClassDTO(classDoc, {
+                memberCount: memberCounts.get(String(classDoc._id)) ?? 0,
+                membership: membershipByClass.get(String(classDoc._id)),
+                isAdmin: isAdmin(user),
+            })
+        );
     },
-    createClass: async (data) => {
-        const createdClass = await classesRepository.createClass(data);
-        return createdClass;
-    },
-    updateClass: async (userId, classid, data) => {
-        const classEl = await classesRepository.updateClass(classid, data);
 
-        return classEl;
-    },
-    deleteClass: async (userId, classId) => {
-        const classEl = await classesRepository.deleteClass(classId);
-        if (!classEl) throw new NotFoundError("Class not found");
-        return classEl;
-    },
-    getClassMembers: async (classId) => {
-        const classE = await classesRepository.getClassById(classId);
-        if (!classE) throw new NotFoundError("Class not found");
+    getClass: async (user, classId) => {
+        const { classDoc, membership } = await membershipService.getAccess(user, classId);
+        const memberCounts = await membershipRepository.countActiveByClass([classId]);
 
-        const members = await membershipRepository.getClassMembers(classId);
-        return members;
-    }
-}
+        return toClassDTO(classDoc, {
+            memberCount: memberCounts.get(classId) ?? 0,
+            membership,
+            isAdmin: isAdmin(user),
+        });
+    },
+
+    /** Sidebar data: every class the user belongs to, with unread counts. */
+    getJoinedClasses: async (user) => {
+        const memberships = await membershipRepository.findByUser(user.id);
+        if (memberships.length === 0) return [];
+
+        const classIds = memberships.map((m) => m.class);
+        const [classes, memberCounts, unreadCounts] = await Promise.all([
+            classesRepository.findByIds(classIds),
+            membershipRepository.countActiveByClass(classIds),
+            Promise.all(
+                memberships.map((m) =>
+                    m.banned ? 0 : messagesRepository.countUnread(m.class, user.id, m.lastReadAt)
+                )
+            ),
+        ]);
+
+        const classById = new Map(classes.map((c) => [String(c._id), c]));
+
+        return memberships
+            .map((membership, index) => {
+                const classDoc = classById.get(String(membership.class));
+                if (!classDoc) return null;
+
+                return toClassDTO(classDoc, {
+                    memberCount: memberCounts.get(String(classDoc._id)) ?? 0,
+                    membership,
+                    isAdmin: isAdmin(user),
+                    unreadCount: unreadCounts[index],
+                });
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    },
+
+    createClass: async (user, data) => {
+        const created = await classesRepository.create({ ...data, createdBy: user.id });
+        // The creator joins automatically and moderates their own class.
+        const membership = await membershipRepository.create({
+            user: user.id,
+            class: created._id,
+            isModerator: true,
+        });
+
+        return toClassDTO(created, { memberCount: 1, membership, isAdmin: isAdmin(user) });
+    },
+
+    updateClass: async (user, classId, data) => {
+        const updated = await classesRepository.update(classId, data);
+        if (!updated) throw new NotFoundError("Class not found");
+
+        return classesService.getClass(user, classId);
+    },
+
+    deleteClass: async (user, classId) => {
+        const classDoc = await classesRepository.findById(classId);
+        if (!classDoc) throw new NotFoundError("Class not found");
+
+        const attachmentPaths = await messagesRepository.findAttachmentPathsByClass(classId);
+
+        await Promise.all([
+            messagesRepository.removeByClass(classId),
+            membershipRepository.removeByClass(classId),
+        ]);
+        await classesRepository.remove(classId);
+        await removeUploads(attachmentPaths);
+
+        return { id: classId };
+    },
+};

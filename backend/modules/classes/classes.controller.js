@@ -1,52 +1,69 @@
-import ApiResponse  from "../../utils/ApiResponse.js";
+import ApiResponse from "../../utils/ApiResponse.js";
 import { membershipService } from "../membership/membership.service.js";
-import { postsService } from "../posts/posts.service.js";
 import { classesService } from "./classes.service.js";
 
 export const classesController = {
     getClasses: async (req, res) => {
-        const classes = await classesService.getClasses(req.user.id);
-        return res.status(200).json(new ApiResponse(200, classes, "Classes fetched successfully"));
+        const classes = await classesService.listClasses(req.user, req.validated.query);
+        ApiResponse.send(res, 200, classes, "Classes fetched successfully");
     },
+
     getClassById: async (req, res) => {
-        const classData = await classesService.getClassById(req.user.id ,req.params.id);
-        return res.status(200).json(new ApiResponse(200, classData, "Class fetched successfully"));
+        const classData = await classesService.getClass(req.user, req.params.classId);
+        ApiResponse.send(res, 200, classData, "Class fetched successfully");
     },
+
     createClass: async (req, res) => {
-        const createdClass = await classesService.createClass(req.body);
-        return res.status(201).json(new ApiResponse(201, createdClass, "Class created successfully"));
+        const created = await classesService.createClass(req.user, req.body);
+        ApiResponse.send(res, 201, created, "Class created successfully");
     },
+
     updateClass: async (req, res) => {
-        const updatedClass = await classesService.updateClass(req.user.id, req.params.id, req.body);
-        return res.status(200).json(new ApiResponse(200, updatedClass, "Class updated successfully"));
+        const updated = await classesService.updateClass(req.user, req.params.classId, req.body);
+        ApiResponse.send(res, 200, updated, "Class updated successfully");
     },
+
     deleteClass: async (req, res) => {
-        const deletedClass = await classesService.deleteClass(req.user.id, req.params.id);
-        return res.status(200).json(new ApiResponse(200, deletedClass, "Class deleted successfully"));
+        const deleted = await classesService.deleteClass(req.user, req.params.classId);
+        ApiResponse.send(res, 200, deleted, "Class deleted successfully");
     },
-    getClassMembers: async (req, res) => {
-        const members = await classesService.getClassMembers(req.params.classId);
-        return res.status(200).json(new ApiResponse(200, members, "Class members fetched successfully"));
-    },
+
     joinClass: async (req, res) => {
-        const joinMembership = await membershipService.createMembership(req.user.id, req.params.classId);
-        return res.status(201).json(new ApiResponse(201, joinMembership, "Class joined successfully"));
+        const membership = await membershipService.join(req.user, req.params.classId);
+        ApiResponse.send(res, 201, membership, "Class joined successfully");
     },
+
     leaveClass: async (req, res) => {
-        const leaveMembership = await membershipService.removeMembership(req.user.id, req.params.classId);
-        return res.status(200).json(new ApiResponse(200, leaveMembership, "Class left successfully"));
+        const result = await membershipService.leave(req.user, req.params.classId);
+        ApiResponse.send(res, 200, result, "Class left successfully");
     },
-    updateUserStatus: async (req, res) => {
-        const updatedUser = await membershipService.updateMembershipStatus(req.params.classId, req.params.memberId, req.user, req.body);
-        return res.status(200).json(new ApiResponse(200, updatedUser, "User status updated successfully"));
+
+    markRead: async (req, res) => {
+        const result = await membershipService.markRead(req.user, req.params.classId);
+        ApiResponse.send(res, 200, result, "Class marked as read");
     },
-    forceExitRoom: async (req, res) => {
-        const exitedUser = await membershipService.forceRemoveMembership(req.params.classId, req.params.memberId, req.user);
-        return res.status(200).json(new ApiResponse(200, exitedUser, "User force exited successfully"));
+
+    getClassMembers: async (req, res) => {
+        const members = await membershipService.getMembers(req.user, req.params.classId);
+        ApiResponse.send(res, 200, members, "Class members fetched successfully");
     },
-    getClassFeed: async (req, res) => {
-        const searchParams = req.query;
-        const posts = await postsService.getPostsByClassId(req.user.id, req.params.classId, searchParams);
-        return res.status(200).json(new ApiResponse(200, posts, "Class feed fetched successfully"));
-    }
-}
+
+    updateMemberStatus: async (req, res) => {
+        const member = await membershipService.updateMemberStatus(
+            req.user,
+            req.params.classId,
+            req.params.memberId,
+            req.body
+        );
+        ApiResponse.send(res, 200, member, "Member updated successfully");
+    },
+
+    removeMember: async (req, res) => {
+        const result = await membershipService.removeMember(
+            req.user,
+            req.params.classId,
+            req.params.memberId
+        );
+        ApiResponse.send(res, 200, result, "Member removed successfully");
+    },
+};

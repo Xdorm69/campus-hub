@@ -1,7 +1,11 @@
-import z from "zod";
+import { z } from "zod";
+import { usernameSchema } from "../../utils/validators.js";
 
-export const userProfileUpdateSchema = z.object({
-    username: z.string().min(1).max(100).optional(),
-    bio: z.string().max(500).optional(),
-    avatar: z.string().url().optional()
-});
+export const userProfileUpdateSchema = z
+    .object({
+        username: usernameSchema.optional(),
+        bio: z.string().trim().max(280, "Bio must be 280 characters or fewer").optional(),
+    })
+    .refine((data) => data.username !== undefined || data.bio !== undefined, {
+        message: "Provide at least one field to update.",
+    });

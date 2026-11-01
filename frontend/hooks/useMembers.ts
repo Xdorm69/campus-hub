@@ -1,53 +1,53 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { classService } from "@/services/class.service";
-import { ClassMember, ModerateMemberPayload } from "@/types/class";
 import { toast } from "sonner";
+import { classService } from "@/services/class.service";
+import { queryKeys } from "@/lib/query-keys";
+import { POLL_INTERVALS } from "@/lib/constants";
+import { getErrorMessage } from "@/lib/api-error";
+import { ClassMember, ModerateMemberPayload } from "@/types/class";
 
-export function useMembers(classId: string) {
+export function useMembers(classId: string, enabled = true) {
   return useQuery({
-    queryKey: ["classes", classId, "members"],
+    queryKey: queryKeys.classes.members(classId),
     queryFn: () => classService.getMembers(classId),
-    enabled: Boolean(classId),
+    enabled: Boolean(classId) && enabled,
+    refetchInterval: POLL_INTERVALS.MEMBERS,
   });
 }
 
 export function useModerateMember(classId: string) {
   const queryClient = useQueryClient();
+  const membersKey = queryKeys.classes.members(classId);
 
   return useMutation({
-    mutationFn: ({
-      memberId,
-      payload,
-    }: {
-      memberId: string;
-      payload: ModerateMemberPayload;
-    }) => classService.moderateMember(classId, memberId, payload),
-    onSuccess: (updatedMember) => {
-      queryClient.setQueryData<ClassMember[]>(
-        ["classes", classId, "members"],
-        (old) => old?.map((m) => (m.id === updatedMember.id ? updatedMember : m))
+    mutationFn: ({ userId, payload }: { userId: string; payload: ModerateMemberPayload }) =>
+      classService.moderateMember(classId, userId, payload),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<ClassMember[]>(membersKey, (old) =>
+        old?.map((member) => (member.id === updated.id ? updated : member))
       );
+      // Banning changes the active member count.
+      queryClient.invalidateQueries({ queryKey: queryKeys.classes.detail(classId) });
     },
-    onError: (error) => {
-      console.error("Failed to moderate member:", error);
-      toast.error("Failed to moderate member: " + (error as Error).message);
-    },
+    onError: (error) => toast.error(getErrorMessage(error, "Couldn't update member")),
   });
 }
 
 export function useRemoveMember(classId: string) {
   const queryClient = useQueryClient();
+  const membersKey = queryKeys.classes.members(classId);
 
   return useMutation({
-    mutationFn: (memberId: string) => classService.removeMember(classId, memberId),
-    onSuccess: (_data, memberId) => {
-      queryClient.setQueryData<ClassMember[]>(
-        ["classes", classId, "members"],
-        (old) => old?.filter((m) => m.id !== memberId)
+    mutationFn: (userId: string) => classService.removeMember(classId, userId),
+    onSuccess: (_data, userId) => {
+      queryClient.setQueryData<ClassMember[]>(membersKey, (old) =>
+        old?.filter((member) => member.userId !== userId)
       );
-      queryClient.invalidateQueries({ queryKey: ["classes", classId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.classes.detail(classId) });
+      toast.success("Member removed");
     },
+    onError: (error) => toast.error(getErrorMessage(error, "Couldn't remove member")),
   });
 }
