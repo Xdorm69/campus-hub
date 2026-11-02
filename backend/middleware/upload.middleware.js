@@ -46,9 +46,16 @@ const avatarUploader = createUploader({
     maxFiles: 1,
 });
 
+const bannerUploader = createUploader({
+    mimeTypesByField: { banner: IMAGE_MIME_TYPES },
+    maxFileSize: UPLOAD_LIMITS.BANNER_MAX_SIZE,
+    maxFiles: 1,
+});
+
 /** `files` (attachments) and/or a single `voice` recording. */
 export const uploadMessageFiles = messageUploader.fields([
     { name: "files", maxCount: UPLOAD_LIMITS.ATTACHMENT_MAX_COUNT },
     { name: "voice", maxCount: 1 },
 ]);
 export const uploadAvatar = avatarUploader.single("avatar");
+export const uploadBanner = bannerUploader.single("banner");

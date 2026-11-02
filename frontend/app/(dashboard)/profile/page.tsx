@@ -1,13 +1,15 @@
 "use client";
 
-import { Settings } from "lucide-react";
+import { Image as ImageIcon, Settings } from "lucide-react";
 import { PageBody, PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ProfileBanner } from "@/components/ui/profile-banner";
 import { AvatarUploader } from "@/features/profile/AvatarUploader";
+import { BannerPicker } from "@/features/profile/BannerPicker";
 import { ProfileForm } from "@/features/profile/ProfileForm";
 import { useProfile } from "@/hooks/useProfile";
 import { formatDate } from "@/lib/format";
-import { colorFromSeed } from "@/lib/utils";
 
 export default function ProfilePage() {
   // The dashboard layout only renders once the profile has loaded.
@@ -20,7 +22,20 @@ export default function ProfilePage() {
 
       <PageBody className="max-w-2xl">
         <div className="overflow-hidden rounded-lg bg-card ring-1 ring-border">
-          <div className="h-24" style={{ backgroundColor: colorFromSeed(user.id) }} />
+          <ProfileBanner user={user} className="h-32">
+            <BannerPicker
+              user={user}
+              trigger={
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="absolute right-3 top-3 h-8 bg-black/50 text-white backdrop-blur hover:bg-black/70"
+                >
+                  <ImageIcon className="h-4 w-4" /> Change banner
+                </Button>
+              }
+            />
+          </ProfileBanner>
 
           <div className="px-4 pb-4 md:px-6">
             <div className="-mt-12 flex flex-wrap items-end justify-between gap-4">

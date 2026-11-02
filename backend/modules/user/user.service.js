@@ -31,32 +31,59 @@ export const userService = {
             }
         }
 
-        const user = await userRepository.updateById(userId, data);
+        // Choosing a preset (or none) replaces an uploaded banner.
+        const choosingPreset = data.bannerPreset !== undefined;
+        const previous = choosingPreset ? await findUserOrThrow(userId) : null;
+        const updates = choosingPreset ? { ...data, bannerPath: null } : data;
+
+        const user = await userRepository.updateById(userId, updates);
         if (!user) throw new NotFoundError("User not found");
+
+        if (previous) await removeUploads([previous.bannerPath]);
         return toUserDTO(user, { includePrivate: true });
     },
 
-    updateAvatar: async (userId, file) => {
-        const previous = await findUserOrThrow(userId);
-        const key = await saveUpload(file, UPLOAD_FOLDERS.AVATARS);
+    updateAvatar: (userId, file) =>
+        replaceImage(userId, file, { field: "avatarPath", folder: UPLOAD_FOLDERS.AVATARS }),
 
-        let user;
-        try {
-            user = await userRepository.updateById(userId, { avatarPath: key });
-        } catch (error) {
-            await removeUploads([key]);
-            throw error;
-        }
+    removeAvatar: (userId) => clearImage(userId, { avatarPath: null }, "avatarPath"),
 
-        await removeUploads([previous.avatarPath]);
-        return toUserDTO(user, { includePrivate: true });
-    },
+    // An uploaded banner replaces any preset.
+    updateBanner: (userId, file) =>
+        replaceImage(userId, file, {
+            field: "bannerPath",
+            folder: UPLOAD_FOLDERS.BANNERS,
+            extra: { bannerPreset: null },
+        }),
 
-    removeAvatar: async (userId) => {
-        const previous = await findUserOrThrow(userId);
-        const user = await userRepository.updateById(userId, { avatarPath: null });
-
-        await removeUploads([previous.avatarPath]);
-        return toUserDTO(user, { includePrivate: true });
-    },
+    // Back to the default color: clears both the upload and any preset.
+    removeBanner: (userId) => clearImage(userId, { bannerPath: null, bannerPreset: null }, "bannerPath"),
 };
+
+/**
+ * Stores `file` as the user's new image in `field`, then deletes the one it
+ * replaced — so each user holds at most one avatar and one banner.
+ */
+async function replaceImage(userId, file, { field, folder, extra = {} }) {
+    const previous = await findUserOrThrow(userId);
+    const key = await saveUpload(file, folder);
+
+    let user;
+    try {
+        user = await userRepository.updateById(userId, { [field]: key, ...extra });
+    } catch (error) {
+        await removeUploads([key]);
+        throw error;
+    }
+
+    await removeUploads([previous[field]]);
+    return toUserDTO(user, { includePrivate: true });
+}
+
+async function clearImage(userId, updates, field) {
+    const previous = await findUserOrThrow(userId);
+    const user = await userRepository.updateById(userId, updates);
+
+    await removeUploads([previous[field]]);
+    return toUserDTO(user, { includePrivate: true });
+}

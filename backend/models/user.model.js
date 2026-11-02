@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { ROLES } from "../constants/roles.js";
+import { BANNER_PRESET_IDS } from "../constants/banners.js";
 
 const userSchema = new mongoose.Schema(
     {
@@ -28,9 +29,20 @@ const userSchema = new mongoose.Schema(
             maxlength: 280,
             default: null,
         },
-        // Path relative to the upload dir, e.g. "avatars/<uuid>.png".
+        // GridFS key of the uploaded avatar (see utils/files.js).
         avatarPath: {
             type: String,
+            default: null,
+        },
+        // Profile banner: an uploaded image (GridFS key) or a built-in preset
+        // id. At most one is set; neither means the default color.
+        bannerPath: {
+            type: String,
+            default: null,
+        },
+        bannerPreset: {
+            type: String,
+            enum: [...BANNER_PRESET_IDS, null],
             default: null,
         },
         role: {

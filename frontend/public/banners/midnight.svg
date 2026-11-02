@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" width="960" height="340" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#020617"/>
+      <stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+    <mask id="crescent">
+      <rect width="960" height="340" fill="#000"/>
+      <circle cx="760" cy="110" r="56" fill="#fff"/>
+      <circle cx="784" cy="94" r="50" fill="#000"/>
+    </mask>
+  </defs>
+  <rect width="960" height="340" fill="url(#sky)"/>
+  <circle cx="760" cy="110" r="80" fill="#fde68a" opacity="0.08"/>
+  <rect width="960" height="340" fill="#fef3c7" mask="url(#crescent)"/>
+  <g fill="#fff">
+    <circle cx="70" cy="50" r="1.4" opacity="0.9"/><circle cx="160" cy="130" r="1" opacity="0.6"/>
+    <circle cx="260" cy="60" r="1.8" opacity="0.9"/><circle cx="340" cy="160" r="1" opacity="0.5"/>
+    <circle cx="430" cy="40" r="1.2" opacity="0.7"/><circle cx="520" cy="120" r="1.6" opacity="0.8"/>
+    <circle cx="600" cy="60" r="1" opacity="0.6"/><circle cx="880" cy="60" r="1.4" opacity="0.8"/>
+    <circle cx="920" cy="170" r="1" opacity="0.5"/><circle cx="660" cy="190" r="1.2" opacity="0.6"/>
+  </g>
+  <!-- skyline -->
+  <path d="M0 340 L0 270 L50 270 L50 240 L90 240 L90 280 L130 280 L130 220 L170 220 L170 260 L220 260 L220 250 L260 250 L260 200 L300 200 L300 270 L360 270 L360 235 L400 235 L400 285 L450 285 L450 210 L470 190 L490 210 L490 270 L540 270 L540 245 L590 245 L590 275 L640 275 L640 225 L690 225 L690 265 L740 265 L740 240 L790 240 L790 280 L840 280 L840 230 L880 230 L880 270 L960 270 L960 340 Z" fill="#0b1220"/>
+  <g fill="#fbbf24" opacity="0.7">
+    <rect x="140" y="230" width="6" height="8"/><rect x="155" y="245" width="6" height="8"/>
+    <rect x="270" y="215" width="6" height="8"/><rect x="285" y="235" width="6" height="8"/>
+    <rect x="460" y="225" width="6" height="8"/><rect x="650" y="240" width="6" height="8"/>
+    <rect x="850" y="245" width="6" height="8"/><rect x="370" y="250" width="6" height="8"/>
+  </g>
+</svg>

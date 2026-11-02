@@ -9,7 +9,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { useMembers } from "@/hooks/useMembers";
 import { useProfile, useUserProfile } from "@/hooks/useProfile";
 import { formatDate } from "@/lib/format";
-import { colorFromSeed } from "@/lib/utils";
+import { ProfileBanner } from "@/components/ui/profile-banner";
 import { ClassMember } from "@/types/class";
 import { KickMemberDialog, MemberActions } from "./MemberActions";
 import { canModerateMember } from "./permissions";
@@ -37,7 +37,8 @@ function UserProfileCard({
 
   return (
     <>
-      <div className="h-16" style={{ backgroundColor: colorFromSeed(userId) }} />
+      {/* Falls back to the user's color until the profile has loaded. */}
+      <ProfileBanner user={profile ?? { id: userId }} className="h-20" />
 
       <div className="px-4 pb-4">
         <div className="-mt-9 mb-2 w-fit rounded-full border-[6px] border-popover">

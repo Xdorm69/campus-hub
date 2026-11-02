@@ -37,7 +37,8 @@ Errors:
 
 ```ts
 UserSummary  { id, username, avatarUrl: string | null, role: "USER" | "ADMIN" }
-UserProfile  UserSummary & { bio, createdAt, email?, verified? }   // email/verified only for yourself or admins
+UserProfile  UserSummary & { bio, bannerUrl, bannerPreset, createdAt, email?, verified? }   // email/verified only for yourself or admins
+             // banner: bannerUrl (uploaded) wins; else bannerPreset (built-in id); both null = default color
 
 ClassRoom {
   id, code, name, description, memberCount, lastMessageAt, createdAt,
@@ -81,9 +82,11 @@ Register and login share a rate limit of 10 attempts per 15 minutes per IP.
 | Method | Path                | Body / form               | Returns |
 | ------ | ------------------- | ------------------------- | ------- |
 | GET    | `/users/me`         | —                         | Your profile (includes `email`, `verified`) |
-| PATCH  | `/users/me`         | `{ username?, bio? }`     | Updated profile |
+| PATCH  | `/users/me`         | `{ username?, bio?, bannerPreset? }` | Updated profile. `bannerPreset` is one of `aurora, sunset, ocean, forest, nebula, blueprint, candy, midnight`, or `null`. Choosing one deletes an uploaded banner |
 | PUT    | `/users/me/avatar`  | multipart, field `avatar` | Updated profile |
 | DELETE | `/users/me/avatar`  | —                         | Updated profile (`avatarUrl: null`) |
+| PUT    | `/users/me/banner`  | multipart, field `banner` (PNG/JPEG/GIF/WebP, ≤ 3 MB) | Updated profile. Replaces any preset and deletes the previous upload |
+| DELETE | `/users/me/banner`  | —                         | Updated profile; clears both the upload and the preset (back to the default color) |
 | GET    | `/users/me/classes` | —                         | `ClassRoom[]` for classes you've joined, sorted by name, with `unreadCount` (counts above 99 are reported as 100) |
 | GET    | `/users/:id`        | —                         | `UserProfile` |
 

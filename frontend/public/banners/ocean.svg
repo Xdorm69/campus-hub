@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" width="960" height="340" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7dd3fc"/>
+      <stop offset="1" stop-color="#0c4a6e"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="340" fill="url(#sea)"/>
+  <path d="M0 120 C 120 90, 240 150, 360 120 S 600 90, 720 120 S 900 150, 960 120 L960 340 L0 340 Z" fill="#38bdf8" opacity="0.55"/>
+  <path d="M0 170 C 140 140, 280 200, 420 170 S 700 140, 840 170 S 940 190, 960 175 L960 340 L0 340 Z" fill="#0ea5e9" opacity="0.6"/>
+  <path d="M0 225 C 160 195, 320 255, 480 225 S 800 195, 960 225 L960 340 L0 340 Z" fill="#0369a1" opacity="0.8"/>
+  <path d="M0 280 C 180 255, 360 305, 540 280 S 840 255, 960 280 L960 340 L0 340 Z" fill="#083a5c"/>
+  <g fill="none" stroke="#e0f2fe" stroke-width="3" stroke-linecap="round" opacity="0.5">
+    <path d="M90 150 q 20 -12 40 0"/><path d="M520 200 q 20 -12 40 0"/><path d="M780 145 q 20 -12 40 0"/>
+  </g>
+</svg>

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { userService } from "@/services/user.service";
 import { queryKeys } from "@/lib/query-keys";
 import { getErrorMessage } from "@/lib/api-error";
+import { BannerPresetId } from "@/lib/banners";
 import { CurrentUser, UpdateProfilePayload } from "@/types/user";
 
 /** The signed-in user. Errors (401) mean "not logged in". */
@@ -70,5 +71,46 @@ export function useRemoveAvatar() {
       toast.success("Avatar removed");
     },
     onError: (error) => toast.error(getErrorMessage(error, "Couldn't remove avatar")),
+  });
+}
+
+export function useUploadBanner() {
+  const setCurrentUser = useSetCurrentUser();
+
+  return useMutation({
+    mutationFn: (file: File) => userService.uploadBanner(file),
+    onSuccess: (user) => {
+      setCurrentUser(user);
+      toast.success("Banner updated");
+    },
+    onError: (error) => toast.error(getErrorMessage(error, "Couldn't upload banner")),
+  });
+}
+
+/** Picks a built-in banner (replacing an uploaded one). */
+export function useSetBannerPreset() {
+  const setCurrentUser = useSetCurrentUser();
+
+  return useMutation({
+    mutationFn: (bannerPreset: BannerPresetId) => userService.updateMe({ bannerPreset }),
+    onSuccess: (user) => {
+      setCurrentUser(user);
+      toast.success("Banner updated");
+    },
+    onError: (error) => toast.error(getErrorMessage(error, "Couldn't update banner")),
+  });
+}
+
+/** Back to the default color: clears an upload and any preset. */
+export function useRemoveBanner() {
+  const setCurrentUser = useSetCurrentUser();
+
+  return useMutation({
+    mutationFn: () => userService.removeBanner(),
+    onSuccess: (user) => {
+      setCurrentUser(user);
+      toast.success("Banner removed");
+    },
+    onError: (error) => toast.error(getErrorMessage(error, "Couldn't remove banner")),
   });
 }

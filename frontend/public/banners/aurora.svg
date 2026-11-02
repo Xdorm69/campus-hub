@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" width="960" height="340" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1026"/>
+      <stop offset="1" stop-color="#16224a"/>
+    </linearGradient>
+    <filter id="blur" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="28"/>
+    </filter>
+  </defs>
+  <rect width="960" height="340" fill="url(#sky)"/>
+  <g filter="url(#blur)" opacity="0.9">
+    <path d="M-40 210 C 140 90, 300 260, 480 150 S 820 60, 1000 170 L 1000 230 C 820 140, 640 300, 480 220 S 140 180, -40 280 Z" fill="#2de2a6"/>
+    <path d="M-40 150 C 180 60, 360 200, 560 110 S 860 40, 1000 110 L 1000 150 C 860 90, 700 220, 540 160 S 160 120, -40 200 Z" fill="#7c5cff" opacity="0.8"/>
+    <path d="M200 120 C 360 40, 520 140, 700 70 L 720 110 C 540 180, 380 90, 220 170 Z" fill="#38bdf8" opacity="0.7"/>
+  </g>
+  <g fill="#fff">
+    <circle cx="90" cy="40" r="1.6" opacity="0.8"/><circle cx="250" cy="70" r="1.2" opacity="0.6"/>
+    <circle cx="410" cy="30" r="1.4" opacity="0.7"/><circle cx="620" cy="50" r="1.2" opacity="0.6"/>
+    <circle cx="800" cy="28" r="1.6" opacity="0.8"/><circle cx="905" cy="80" r="1.1" opacity="0.5"/>
+  </g>
+  <path d="M0 300 L120 270 L230 292 L360 262 L500 296 L640 268 L780 294 L900 272 L960 286 L960 340 L0 340 Z" fill="#070b1c"/>
+</svg>

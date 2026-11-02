@@ -1,3 +1,5 @@
+import type { BannerPresetId } from "@/lib/banners";
+
 export type GlobalRole = "USER" | "ADMIN";
 
 /** The slice of a user embedded in messages, members and replies. */
@@ -10,6 +12,10 @@ export interface UserSummary {
 
 export interface UserProfile extends UserSummary {
   bio: string | null;
+  /** Uploaded banner image; takes precedence over `bannerPreset`. */
+  bannerUrl: string | null;
+  /** Built-in banner id (see lib/banners.ts); null when unset or uploaded. */
+  bannerPreset: BannerPresetId | null;
   createdAt: string;
   // Only present when viewing yourself, or as an admin.
   email?: string;
@@ -26,4 +32,6 @@ export interface CurrentUser extends UserProfile {
 export interface UpdateProfilePayload {
   username?: string;
   bio?: string;
+  /** Choosing a preset replaces an uploaded banner; null resets to the default color. */
+  bannerPreset?: BannerPresetId | null;
 }

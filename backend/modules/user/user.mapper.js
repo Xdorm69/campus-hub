@@ -20,6 +20,10 @@ export function toUserDTO(user, { includePrivate = false } = {}) {
     return {
         ...toAuthorDTO(user),
         bio: user.bio ?? null,
+        // An uploaded banner wins; otherwise a preset id; otherwise both null
+        // and the client falls back to a color.
+        bannerUrl: toPublicUrl(user.bannerPath),
+        bannerPreset: user.bannerPath ? null : (user.bannerPreset ?? null),
         createdAt: user.createdAt,
         ...(includePrivate && {
             email: user.email,

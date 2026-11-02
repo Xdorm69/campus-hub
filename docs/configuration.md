@@ -43,6 +43,7 @@ Polling intervals, page size and upload limits are set in `frontend/lib/constant
 | Message length              | 4000 characters |
 | Attachments per message     | 5 files, 10 MB each |
 | Avatar                      | 2 MB; PNG, JPEG, GIF or WebP |
+| Profile banner              | 3 MB; PNG, JPEG, GIF or WebP (one per user, old one deleted on replace). The 8 built-in banners use no storage |
 | Voice note                  | 2 minutes, 1.5 MB each; plus the daily, total and retention limits above |
 | Video                       | MP4/WebM/MOV, 10 MB each; plus the daily, total and retention limits above |
 | GIF                         | No storage used (provider-hosted) |

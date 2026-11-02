@@ -31,6 +31,18 @@ export const userController = {
         ApiResponse.send(res, 200, profile, "Avatar removed successfully");
     },
 
+    updateBanner: async (req, res) => {
+        if (!req.file) throw new BadRequestError("Attach an image in the 'banner' field");
+
+        const profile = await userService.updateBanner(req.user.id, req.file);
+        ApiResponse.send(res, 200, profile, "Banner updated successfully");
+    },
+
+    removeBanner: async (req, res) => {
+        const profile = await userService.removeBanner(req.user.id);
+        ApiResponse.send(res, 200, profile, "Banner removed successfully");
+    },
+
     getUserClasses: async (req, res) => {
         const classes = await classesService.getJoinedClasses(req.user);
         ApiResponse.send(res, 200, classes, "User classes fetched successfully");

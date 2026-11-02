@@ -54,6 +54,8 @@ export const UPLOAD_LIMITS = {
     ATTACHMENT_MAX_SIZE: 10 * MB,
     ATTACHMENT_MAX_COUNT: 5,
     AVATAR_MAX_SIZE: 2 * MB,
+    // Banners are wide (recommended 960×340), so they get a bit more room.
+    BANNER_MAX_SIZE: 3 * MB,
 };
 
 /**
@@ -74,6 +76,7 @@ export const VIDEO_LIMITS = {
 export const UPLOAD_FOLDERS = {
     ATTACHMENTS: "attachments",
     AVATARS: "avatars",
+    BANNERS: "banners",
     VOICE: "voice",
     VIDEO: "video",
 };

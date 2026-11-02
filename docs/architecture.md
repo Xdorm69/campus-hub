@@ -80,6 +80,7 @@ How a file moves through the app:
 | ------------- | ------------------ | ---------------------------------- | --------------- |
 | Attachments   | `files` (array)    | images, videos (MP4/WebM/MOV), PDF, txt, zip, Office docs | 5 files × 10 MB |
 | Avatar        | `avatar`           | PNG, JPEG, GIF, WebP               | 1 file × 2 MB   |
+| Banner        | `banner`           | PNG, JPEG, GIF, WebP               | 1 file × 3 MB   |
 | Voice note    | `voice`            | WebM, Ogg, MP4/M4A, AAC, MP3 audio | 1 file × 1.5 MB, 2 min |
 
 A file's key is `<GridFS ObjectId><ext>`, where the extension comes from the **MIME type**, never from the uploaded file name. Images and audio are shown inline, and the route supports HTTP `Range` requests so audio can seek (Safari won't play audio without them). Everything else is sent with `Content-Disposition: attachment`, so an uploaded document is downloaded and can never run as a page on the API's domain.

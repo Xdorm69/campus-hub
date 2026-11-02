@@ -26,6 +26,19 @@ export const userService = {
     return data.data;
   },
 
+  async uploadBanner(file: File): Promise<CurrentUser> {
+    const form = new FormData();
+    form.append("banner", file);
+    const { data } = await api.put<ApiResponse<CurrentUser>>("/users/me/banner", form);
+    return data.data;
+  },
+
+  /** Clears both an uploaded banner and any preset. */
+  async removeBanner(): Promise<CurrentUser> {
+    const { data } = await api.delete<ApiResponse<CurrentUser>>("/users/me/banner");
+    return data.data;
+  },
+
   async getMyClasses(): Promise<JoinedClass[]> {
     const { data } = await api.get<ApiResponse<JoinedClass[]>>("/users/me/classes");
     return data.data;

@@ -57,6 +57,12 @@ export const AVATAR_LIMITS = {
   ACCEPT: ["image/png", "image/jpeg", "image/gif", "image/webp"],
 } as const;
 
+/** Mirrors backend UPLOAD_LIMITS.BANNER_MAX_SIZE. Recommended size 960×340. */
+export const BANNER_LIMITS = {
+  MAX_SIZE: 3 * MB,
+  ACCEPT: ["image/png", "image/jpeg", "image/gif", "image/webp"],
+} as const;
+
 export const QUICK_REACTIONS = ["👍", "❤️", "😂"] as const;
 
 export const REACTION_EMOJIS = [

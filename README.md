@@ -14,7 +14,7 @@ A chat app for university classes, styled after Discord and Slack. Every class i
 - **Unread badges** in the sidebar, cleared once you've read the room.
 - **Classes:** browse and search, join and leave. Admins create, edit and delete classes.
 - **Moderation:** mute, ban, kick, and promote or demote moderators. Rules are enforced on the server ([permissions](docs/permissions.md)).
-- **Profiles:** avatar upload, bio, and a profile card that opens when you click a name.
+- **Profiles:** avatar upload, bio, a profile banner (8 built-in designs or your own image), and a profile card that opens when you click a name.
 - Dark and light themes, and a layout that works on mobile.
 
 ## Quick start
