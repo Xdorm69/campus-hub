@@ -177,7 +177,7 @@ export function useMarkClassRead(classId: string) {
     mutationFn: () => classService.markRead(classId),
     onMutate: () => {
       queryClient.setQueryData<JoinedClass[]>(queryKeys.myClasses, (old) =>
-        old?.map((c) => (c.id === classId ? { ...c, unreadCount: 0 } : c))
+        old?.map((c) => (c.id === classId ? { ...c, unreadCount: 0, mentionCount: 0 } : c))
       );
     },
   });

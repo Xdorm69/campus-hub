@@ -74,7 +74,8 @@ function FailedMessageActions({ message }: { message: Message }) {
 }
 
 function MessageItemComponent({ message, isGrouped }: MessageItemProps) {
-  const { classRoom, editingId, isTouch, activeMessageId, toggleActiveMessage, clearActiveMessage } = useChat();
+  const { classRoom, me, editingId, isTouch, activeMessageId, toggleActiveMessage, clearActiveMessage } = useChat();
+  const mentionsMe = message.mentions?.some((m) => m.id === me.id) ?? false;
   const rowRef = useRef<HTMLDivElement>(null);
   const isEditing = editingId === message.id;
   const isActive = activeMessageId === message.id;
@@ -118,6 +119,8 @@ function MessageItemComponent({ message, isGrouped }: MessageItemProps) {
         // would leave a random message highlighted after every tap.
         "[@media(hover:hover)]:hover:bg-accent/60",
         showHeader && "mt-[17px]",
+        // Discord-style: messages that @mention you get a gold tint + bar.
+        mentionsMe && "bg-warning/10 shadow-[inset_2px_0_0_hsl(var(--warning))]",
         (isEditing || isActive) && "bg-accent/60"
       )}
     >
@@ -174,6 +177,8 @@ function MessageItemComponent({ message, isGrouped }: MessageItemProps) {
               {message.content && (
                 <MessageContent
                   content={message.content}
+                  mentions={message.mentions}
+                  meId={me.id}
                   suffix={
                     message.editedAt && (
                       <span

@@ -73,6 +73,8 @@ const messageSchema = new mongoose.Schema(
             default: null,
         },
         reactions: [reactionSchema],
+        // Members mentioned with @username (resolved server-side on send/edit).
+        mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
         editedAt: { type: Date, default: null },
         deletedAt: { type: Date, default: null },
     },
@@ -83,6 +85,8 @@ const messageSchema = new mongoose.Schema(
 messageSchema.index({ class: 1, _id: -1 });
 // Polling sync asks "what changed in this class since T?".
 messageSchema.index({ class: 1, updatedAt: 1 });
+// Unread mentions per class: "messages in class X mentioning me since T".
+messageSchema.index({ mentions: 1, class: 1, createdAt: -1 });
 // Per-user voice quota: "this author's voice notes in the last 24h".
 messageSchema.index({ author: 1, createdAt: -1 });
 // Retention job: "voice notes with audio still stored, oldest first".

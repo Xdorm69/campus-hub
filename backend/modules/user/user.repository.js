@@ -14,6 +14,13 @@ const userRepository = {
 
     findByUsername: (username) => User.findOne({ username }).lean(),
 
+    /** Users with any of these usernames, matched case-insensitively. */
+    findByUsernames: (usernames) =>
+        User.find({ username: { $in: usernames } })
+            .collation({ locale: "en", strength: 2 })
+            .select("_id username")
+            .lean(),
+
     create: async (data) => {
         const user = await User.create(data);
         return user.toObject();

@@ -2,7 +2,10 @@
  * Class as seen by a specific user: the class itself plus that user's
  * relationship to it (membership flags, moderation rights, unread count).
  */
-export function toClassDTO(classDoc, { memberCount = 0, membership = null, isAdmin = false, unreadCount } = {}) {
+export function toClassDTO(
+    classDoc,
+    { memberCount = 0, membership = null, isAdmin = false, unreadCount, mentionCount } = {}
+) {
     const isBanned = Boolean(membership?.banned);
     const isMember = Boolean(membership) && !isBanned;
     const isModerator = isMember && Boolean(membership.isModerator);
@@ -21,5 +24,6 @@ export function toClassDTO(classDoc, { memberCount = 0, membership = null, isAdm
         isBanned,
         canModerate: isAdmin || isModerator,
         ...(unreadCount !== undefined && { unreadCount }),
+        ...(mentionCount !== undefined && { mentionCount }),
     };
 }

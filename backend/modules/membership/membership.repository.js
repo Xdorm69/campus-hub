@@ -19,6 +19,15 @@ export const membershipRepository = {
 
     findByUser: (userId) => Membership.find({ user: userId }).lean(),
 
+    /** Which of these users are active (non-banned) members of the class. */
+    findActiveMemberIds: async (classId, userIds) => {
+        const rows = await Membership.find(
+            { class: classId, user: { $in: userIds }, banned: false },
+            { user: 1 }
+        ).lean();
+        return new Set(rows.map((row) => String(row.user)));
+    },
+
     create: async (data) => {
         const membership = await Membership.create(data);
         return membership.toObject();

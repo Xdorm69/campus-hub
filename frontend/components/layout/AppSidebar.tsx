@@ -70,7 +70,13 @@ function ChannelLink({ classRoom }: { classRoom: JoinedClass }) {
       <span className="ml-auto flex items-center gap-1">
         {classRoom.isMuted && <MicOff className="h-3.5 w-3.5" aria-label="Muted" />}
         {classRoom.isBanned && <Ban className="h-3.5 w-3.5" aria-label="Banned" />}
-        {!isActive && <CountBadge count={classRoom.unreadCount} />}
+        {/* Discord-style: red badge = unread @mentions; grey = other unread. */}
+        {!isActive &&
+          (classRoom.mentionCount > 0 ? (
+            <CountBadge count={classRoom.mentionCount} />
+          ) : (
+            <CountBadge count={classRoom.unreadCount} className="bg-muted-foreground/40 text-foreground" />
+          ))}
       </span>
     </Link>
   );

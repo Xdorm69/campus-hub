@@ -45,12 +45,17 @@ export const classesService = {
         if (memberships.length === 0) return [];
 
         const classIds = memberships.map((m) => m.class);
-        const [classes, memberCounts, unreadCounts] = await Promise.all([
+        const [classes, memberCounts, unreadCounts, mentionCounts] = await Promise.all([
             classesRepository.findByIds(classIds),
             membershipRepository.countActiveByClass(classIds),
             Promise.all(
                 memberships.map((m) =>
                     m.banned ? 0 : messagesRepository.countUnread(m.class, user.id, m.lastReadAt)
+                )
+            ),
+            Promise.all(
+                memberships.map((m) =>
+                    m.banned ? 0 : messagesRepository.countUnreadMentions(m.class, user.id, m.lastReadAt)
                 )
             ),
         ]);
@@ -67,6 +72,7 @@ export const classesService = {
                     membership,
                     isAdmin: isAdmin(user),
                     unreadCount: unreadCounts[index],
+                    mentionCount: mentionCounts[index],
                 });
             })
             .filter(Boolean)

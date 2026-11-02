@@ -8,6 +8,8 @@ import { membershipService } from "../membership/membership.service.js";
 import { messagesRepository } from "./messages.repository.js";
 import { toMessageDTO } from "./messages.mapper.js";
 import { assertMediaAllowed } from "./media-quota.js";
+import { extractMentionedUsernames } from "../../utils/mentions.js";
+import userRepository from "../user/user.repository.js";
 
 // A write stamps `updatedAt` slightly before it becomes visible to queries.
 // Re-scanning a few seconds back means a poll can't slip between the two;
@@ -20,6 +22,21 @@ async function findLiveMessage(messageId) {
     const message = await messagesRepository.findById(messageId);
     if (!message || message.deletedAt) throw new NotFoundError("Message not found");
     return message;
+}
+
+/**
+ * Turns @username tokens in `content` into user ids. Only active members of
+ * the class count, so you can't ping someone outside the room.
+ */
+async function resolveMentions(classId, content) {
+    const usernames = content ? extractMentionedUsernames(content) : [];
+    if (usernames.length === 0) return [];
+
+    const users = await userRepository.findByUsernames(usernames);
+    if (users.length === 0) return [];
+
+    const memberIds = await membershipRepository.findActiveMemberIds(classId, users.map((u) => u._id));
+    return users.filter((u) => memberIds.has(String(u._id))).map((u) => u._id);
 }
 
 /** Voice notes and GIFs stand alone, like Discord's; anything else needs content or files. */
@@ -104,6 +121,8 @@ export const messagesService = {
             }
         }
 
+        const mentions = await resolveMentions(classId, content);
+
         // Storage guards run before anything is written.
         if (voice) await assertMediaAllowed("voice", user.id, [voice.size]);
         await assertMediaAllowed(
@@ -137,6 +156,7 @@ export const messagesService = {
                       }
                     : null,
                 gif: gif ?? null,
+                mentions,
             });
         } catch (error) {
             await removeUploads(storedKeys);
@@ -169,6 +189,7 @@ export const messagesService = {
 
         const updated = await messagesRepository.updateById(messageId, {
             content,
+            mentions: await resolveMentions(String(message.class), content),
             editedAt: new Date(),
         });
         return toMessageDTO(updated);
@@ -195,6 +216,7 @@ export const messagesService = {
             attachments: [],
             voiceNote: null,
             gif: null,
+            mentions: [],
             reactions: [],
         });
         await removeUploads([

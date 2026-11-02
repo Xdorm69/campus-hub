@@ -20,6 +20,8 @@ export interface ClassRoom {
 /** Sidebar entry from `/users/me/classes`. */
 export interface JoinedClass extends ClassRoom {
   unreadCount: number;
+  /** Unread messages that @mention you. */
+  mentionCount: number;
 }
 
 export type MemberRole = "MEMBER" | "MODERATOR";

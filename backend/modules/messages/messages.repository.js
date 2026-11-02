@@ -5,6 +5,7 @@ const AUTHOR_FIELDS = "username avatarPath role";
 
 const MESSAGE_POPULATE = [
     { path: "author", select: AUTHOR_FIELDS },
+    { path: "mentions", select: "username" },
     {
         path: "replyTo",
         select: "author content attachments voiceNote gif deletedAt",
@@ -63,6 +64,18 @@ export const messagesRepository = {
                 createdAt: { $gt: since },
             },
             // The UI caps the badge at "99+", no need to count further.
+            { limit: 100 }
+        ),
+
+    countUnreadMentions: (classId, userId, since) =>
+        Message.countDocuments(
+            {
+                class: classId,
+                mentions: userId,
+                author: { $ne: userId },
+                deletedAt: null,
+                createdAt: { $gt: since },
+            },
             { limit: 100 }
         ),
 

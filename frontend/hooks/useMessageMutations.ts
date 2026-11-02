@@ -63,6 +63,8 @@ function buildOptimisticMessage(
         }
       : null,
     gif: payload.gif ?? null,
+    mentions: [], // resolved by the server
+
     replyTo: payload.replyTo
       ? {
           id: payload.replyTo.id,

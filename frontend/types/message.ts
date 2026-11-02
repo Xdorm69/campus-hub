@@ -72,6 +72,8 @@ export interface Message {
   attachments: Attachment[];
   voiceNote: VoiceNote | null;
   gif: GifEmbed | null;
+  /** Members this message @mentions (resolved by the server). */
+  mentions: { id: string; username: string }[];
   replyTo: ReplyPreview | null;
   reactions: Reaction[];
   editedAt: string | null;

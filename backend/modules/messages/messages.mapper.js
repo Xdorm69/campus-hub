@@ -68,6 +68,10 @@ export function toMessageDTO(message) {
         attachments: (message.attachments ?? []).map(toAttachmentDTO),
         voiceNote: toVoiceNoteDTO(message.voiceNote),
         gif: toGifDTO(message.gif),
+        // Populated users; a mentioned account that was deleted drops out.
+        mentions: (message.mentions ?? [])
+            .filter((user) => user && typeof user === "object" && user.username)
+            .map((user) => ({ id: String(user._id), username: user.username })),
         replyTo: toReplyPreviewDTO(message.replyTo),
         reactions: (message.reactions ?? []).map((reaction) => ({
             emoji: reaction.emoji,

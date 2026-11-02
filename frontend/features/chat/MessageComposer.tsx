@@ -6,10 +6,13 @@ import { toast } from "sonner";
 import { useAutoResizeTextarea } from "@/hooks/useAutoResizeTextarea";
 import { useSendMessage } from "@/hooks/useMessages";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { useMembers } from "@/hooks/useMembers";
+import { useMentionAutocomplete } from "@/hooks/useMentionAutocomplete";
 import { ATTACHMENT_LIMITS, MESSAGE_MAX_LENGTH, VOICE_LIMITS } from "@/lib/constants";
 import { formatBytes, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useChat } from "./ChatContext";
+import { MentionSuggestions } from "./MentionSuggestions";
 import { ComposerAttachments } from "./ComposerAttachments";
 import { GifPicker } from "./GifPicker";
 import { VoiceRecorderBar } from "./VoiceRecorderBar";
@@ -40,7 +43,7 @@ function validateFiles(existing: File[], incoming: File[]) {
 }
 
 export function MessageComposer() {
-  const { classRoom, replyingTo, cancelReply, composerRef, scrollToBottom } = useChat();
+  const { classRoom, me, replyingTo, cancelReply, composerRef, scrollToBottom } = useChat();
   const sendMessage = useSendMessage(classRoom.id);
   const [content, setContent] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -76,7 +79,19 @@ export function MessageComposer() {
     },
   });
 
+  const { data: members } = useMembers(classRoom.id);
+  const mention = useMentionAutocomplete({
+    members,
+    meId: me.id,
+    value: content,
+    setValue: setContent,
+    textareaRef: composerRef,
+  });
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // While the @mention list is open, arrows/Enter/Tab/Esc drive it.
+    if (mention.handleKeyDown(event)) return;
+
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       submit();
@@ -127,7 +142,16 @@ export function MessageComposer() {
         </div>
       )}
 
-      <div className={cn("bg-input", replyingTo ? "rounded-b-lg" : "rounded-lg")}>
+      <div className={cn("relative bg-input", replyingTo ? "rounded-b-lg" : "rounded-lg")}>
+        {mention.isOpen && !recorder.isRecording && (
+          <MentionSuggestions
+            query={mention.query}
+            suggestions={mention.suggestions}
+            activeIndex={mention.activeIndex}
+            onHover={mention.setActiveIndex}
+            onSelect={mention.select}
+          />
+        )}
         {recorder.isRecording ? (
           <VoiceRecorderBar
             elapsedMs={recorder.elapsedMs}
@@ -168,7 +192,13 @@ export function MessageComposer() {
                 value={content}
                 rows={1}
                 maxLength={MESSAGE_MAX_LENGTH}
-                onChange={(event) => setContent(event.target.value)}
+                onChange={(event) => {
+                  setContent(event.target.value);
+                  mention.update(event.target.value, event.target.selectionStart);
+                }}
+                // Caret moved by click/arrow keys: re-check for an "@" trigger.
+                onSelect={(event) => mention.update(event.currentTarget.value, event.currentTarget.selectionStart)}
+                onBlur={mention.close}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
                 placeholder={`Message #${classRoom.name}`}

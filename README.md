@@ -11,6 +11,7 @@ A chat app for university classes, styled after Discord and Slack. Every class i
 - **Messages:** send, edit, delete, reply, emoji reactions, and file/image attachments (paste an image to attach it). A failed send can be retried.
 - **Voice messages:** record up to 2 minutes from the composer and play them back with seeking and 1×/1.5×/2× speed. Storage is capped per note, per user per day and in total, and old notes expire automatically ([details](docs/architecture.md#voice-notes--videos)).
 - **GIFs & videos:** a Discord-style GIF picker (KLIPY or GIPHY; GIFs use no storage) and inline playback for small video uploads, with the same storage limits as voice notes ([setup](docs/gifs-and-videos.md)).
+- **@mentions:** type `@` for a member picker (arrow keys, then Enter or Tab). Mentions render as highlighted names, messages that mention you get a gold highlight, and the sidebar shows a red badge for unread mentions.
 - **Unread badges** in the sidebar, cleared once you've read the room.
 - **Classes:** browse and search, join and leave. Admins create, edit and delete classes.
 - **Moderation:** mute, ban, kick, and promote or demote moderators. Rules are enforced on the server ([permissions](docs/permissions.md)).

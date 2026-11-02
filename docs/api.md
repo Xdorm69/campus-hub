@@ -43,7 +43,7 @@ UserProfile  UserSummary & { bio, bannerUrl, bannerPreset, createdAt, email?, ve
 ClassRoom {
   id, code, name, description, memberCount, lastMessageAt, createdAt,
   isMember, isModerator, isMuted, isBanned, canModerate,   // relative to the user making the request
-  unreadCount?                                              // only in /users/me/classes
+  unreadCount?, mentionCount?                               // only in /users/me/classes
 }
 
 ClassMember { id, userId, user: UserSummary & { bio }, isModerator, muted, banned, joinedAt }
@@ -53,6 +53,7 @@ Message {
   attachments: { id, url: string | null, name, mimeType, size, isExpired }[],          // videos expire
   voiceNote: { url: string | null, mimeType, size, durationMs, isExpired } | null,   // url is null once expired
   gif: { provider, providerId, title, url, previewUrl, width, height } | null,       // provider-hosted
+  mentions: { id, username }[],                                                      // resolved @mentions
   replyTo: { id, author, content, hasAttachments, hasVoiceNote, hasGif, isDeleted } | null,
   reactions: { emoji, count, userIds }[],
   editedAt, deletedAt, createdAt, updatedAt
@@ -157,6 +158,8 @@ Full design: [realtime-chat.md](realtime-chat.md).
 | `voiceDurationMs` | number       | Required with `voice`; up to 120000 (2 minutes) |
 
 Returns `201 Message`. Muted, banned and non-member users get 403.
+
+**@mentions:** `@username` in `content` (3–20 of `A-Z a-z 0-9 _`, case-insensitive) becomes a mention if that user is an active (non-banned) member of the class. The scan stops after 20 different names, and `me@x.edu`-style text doesn't count. Editing a message re-resolves its mentions. Unread mentions appear as `mentionCount` in `/users/me/classes` and are cleared by `POST /classes/:id/read`.
 
 **Voice messages stand alone:** a request with `voice` can't also carry `content` or `files`, and voice messages can't be edited. Before anything is stored, the server checks each limit in turn:
 
