@@ -1,6 +1,7 @@
 import { ROLES } from "../../constants/roles.js";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../../utils/ApiError.js";
-import { removeUploads, toRelativeUploadPath } from "../../utils/files.js";
+import { UPLOAD_FOLDERS } from "../../constants/upload.js";
+import { removeUploads, saveUploads } from "../../utils/files.js";
 import { classesRepository } from "../classes/classes.repository.js";
 import { membershipRepository } from "../membership/membership.repository.js";
 import { membershipService } from "../membership/membership.service.js";
@@ -20,9 +21,9 @@ async function findLiveMessage(messageId) {
     return message;
 }
 
-function toAttachment(file) {
+function toAttachment(file, key) {
     return {
-        path: toRelativeUploadPath(file.path),
+        path: key,
         originalName: file.originalname.slice(0, 255),
         mimeType: file.mimetype,
         size: file.size,
@@ -79,13 +80,22 @@ export const messagesService = {
             }
         }
 
-        const message = await messagesRepository.create({
-            class: classId,
-            author: user.id,
-            content,
-            replyTo: replyTo ?? null,
-            attachments: files.map(toAttachment),
-        });
+        // Files are stored only after every check has passed.
+        const keys = await saveUploads(files, UPLOAD_FOLDERS.ATTACHMENTS);
+
+        let message;
+        try {
+            message = await messagesRepository.create({
+                class: classId,
+                author: user.id,
+                content,
+                replyTo: replyTo ?? null,
+                attachments: files.map((file, index) => toAttachment(file, keys[index])),
+            });
+        } catch (error) {
+            await removeUploads(keys);
+            throw error;
+        }
 
         await Promise.all([
             classesRepository.touchLastMessage(classId, message.createdAt),

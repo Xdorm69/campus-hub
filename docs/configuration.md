@@ -12,8 +12,7 @@
 | `JWT_EXPIRES_IN_HOURS` | `168` (7 days)                            | Controls both the token's expiry and the cookie's `maxAge` |
 | `BCRYPT_ROUNDS`        | `10`                                      | |
 | `FRONTEND_URL`         | `http://localhost:3000`                   | The only origin CORS allows (credentials enabled) |
-| `PUBLIC_URL`           | `http://localhost:${PORT}`                | The API's public address; used to build links to uploaded files |
-| `UPLOAD_DIR`           | `uploads`                                 | Where Multer saves files (relative to `backend/`, or an absolute path) |
+| `PUBLIC_URL`           | `http://localhost:${PORT}`                | The API's public address, used to build links to uploaded files. **Must be set in production** (e.g. `https://your-api.onrender.com`, no `/api/v1`), or every image link points at localhost. A warning is logged at startup if it's missing |
 | `SEED_ADMIN_EMAIL`     | none                                      | Used by `pnpm seed` |
 | `SEED_ADMIN_PASSWORD`  | none                                      | Used by `pnpm seed` |
 | `SEED_ADMIN_USERNAME`  | `admin`                                   | Used by `pnpm seed` |
@@ -49,7 +48,7 @@ The rate limiter keeps its counts in memory, so restarting the API resets them.
 
 - **Cookies across sites:** with `NODE_ENV=production` the cookie is `Secure; SameSite=None`, so the API **must be served over HTTPS**. If the frontend and API share a parent domain, consider changing the cookie to `SameSite=Lax`.
 - **Behind a proxy:** `app.set("trust proxy", 1)` assumes exactly one reverse proxy in front of the API. Change it if your setup differs, otherwise rate limiting may see the wrong client IP.
-- **Persistent uploads:** files live on local disk under `UPLOAD_DIR`. On hosts whose disk is wiped on redeploy, mount a persistent volume or switch Multer to S3/Cloudinary storage. Only `upload.middleware.js` and `utils/files.js` would need to change.
-- **Uploads are public by URL:** anyone with a file's link can open it. Names are random UUIDs, so links can't be guessed, but they aren't checked against class membership. If attachments must be members-only, serve them through an authenticated route instead of `express.static`.
-- **Several API instances:** move the rate-limiter counts to a shared store (e.g. Redis) and put uploads on shared storage.
+- **Uploads are stored in MongoDB (GridFS),** so they survive redeploys and restarts on hosts with temporary disks (Render, Railway, Heroku). They count toward your database size: Atlas's free tier allows 512 MB in total.
+- **Uploads are public by URL:** anyone with a file's link can open it. Keys are random ObjectIds, so links are hard to guess, but they aren't checked against class membership. If attachments must be members-only, add `authenticate` and a membership check to `modules/uploads`.
+- **Several API instances:** move the rate-limiter counts to a shared store (e.g. Redis). Uploads already live in the shared database.
 - **Indexes:** Mongoose creates indexes automatically when the app starts. In production you may prefer to turn `autoIndex` off and create them once with `Model.syncIndexes()` (as `pnpm seed` does).

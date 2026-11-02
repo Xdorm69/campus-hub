@@ -165,4 +165,4 @@ curl -b cookies.txt -F "content=Notes for week 3" -F "files=@notes.pdf" \
 
 ## Uploaded files
 
-Files are served from `GET /uploads/<attachments|avatars>/<uuid>.<ext>` on the API's address (outside `/api/v1`). Images are shown inline; all other types are sent as downloads.
+Files are served from `GET /uploads/<key>` on the API's address (outside `/api/v1` and its rate limit), where `key` is `<ObjectId><ext>`, e.g. `/uploads/6af3c1d2e4b5a6978f0e1d2c.png`. Files are streamed from MongoDB GridFS and cached by browsers for a year (`immutable`). Images are shown inline; all other types are sent as downloads with their original filename. An unknown key returns `404`.

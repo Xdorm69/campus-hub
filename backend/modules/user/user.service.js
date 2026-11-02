@@ -1,6 +1,7 @@
 import { ConflictError, NotFoundError } from "../../utils/ApiError.js";
-import { removeUploads, toRelativeUploadPath } from "../../utils/files.js";
+import { removeUploads, saveUpload } from "../../utils/files.js";
 import { ROLES } from "../../constants/roles.js";
+import { UPLOAD_FOLDERS } from "../../constants/upload.js";
 import userRepository from "./user.repository.js";
 import { toUserDTO } from "./user.mapper.js";
 
@@ -37,9 +38,15 @@ export const userService = {
 
     updateAvatar: async (userId, file) => {
         const previous = await findUserOrThrow(userId);
-        const user = await userRepository.updateById(userId, {
-            avatarPath: toRelativeUploadPath(file.path),
-        });
+        const key = await saveUpload(file, UPLOAD_FOLDERS.AVATARS);
+
+        let user;
+        try {
+            user = await userRepository.updateById(userId, { avatarPath: key });
+        } catch (error) {
+            await removeUploads([key]);
+            throw error;
+        }
 
         await removeUploads([previous.avatarPath]);
         return toUserDTO(user, { includePrivate: true });

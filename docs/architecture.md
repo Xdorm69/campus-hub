@@ -4,7 +4,7 @@ CampusHub is two separate apps that talk over HTTP:
 
 ```
 Next.js frontend (localhost:3000)  ──HTTP + cookie──▶  Express API (localhost:4000/api/v1)  ──▶  MongoDB
-                                    ◀── /uploads/* ──  (files multer saved on disk)
+                                    ◀── /uploads/* ──  (files streamed from MongoDB GridFS)
 ```
 
 The browser calls the API directly. The JWT is stored in an httpOnly `accessToken` cookie, so every request uses `withCredentials`.
@@ -34,12 +34,12 @@ Modules:
 
 ### Middleware order
 
-`helmet → compression → cors → json → pino-http → cookie-parser → /uploads static → /api/v1 (rate limiter + routes) → 404 → error handler`
+`helmet → compression → cors → json → pino-http → cookie-parser → /uploads (GridFS files) → /api/v1 (rate limiter + routes) → 404 → error handler`
 
 - **`authenticate`** checks the JWT, then loads the user from the database. Because of that lookup, a deleted account or a changed role takes effect on the very next request, not only when the token expires.
 - **`validate(schema, source)`** checks the request against a Zod schema. A parsed body replaces `req.body`. A parsed query string goes to `req.validated.query`, because Express 5 doesn't allow `req.query` to be replaced. Failures are thrown so the error handler can deal with them.
 - **`objectIdParam`** (attached with `router.param`) rejects malformed `:classId`, `:memberId`, `:messageId` and `:id` values with a 400.
-- **`error.middleware`** converts known library errors into the API's error format: Mongoose cast and validation errors, duplicate-key (11000) errors, Multer errors, and malformed JSON. It also **deletes any files Multer already saved** for a request that failed.
+- **`error.middleware`** converts known library errors into the API's error format: Mongoose cast and validation errors, duplicate-key (11000) errors, Multer errors, and malformed JSON.
 
 Express 5 forwards errors thrown in async handlers to the error handler, so handlers don't need try/catch.
 
@@ -61,21 +61,29 @@ User ──< Membership >── Class ──< Message
 Design notes:
 
 - **Member counts are calculated when requested** (an aggregation over non-banned memberships), not stored, so they can't drift out of sync.
-- **Messages are soft-deleted.** Deleting sets `deletedAt` and clears the content, attachments and reactions, and the files are removed from disk. The emptied record stays behind so polling clients find out the message was deleted.
+- **Messages are soft-deleted.** Deleting sets `deletedAt` and clears the content, attachments and reactions, and the files are deleted from GridFS. The emptied record stays behind so polling clients find out the message was deleted.
 - **A ban is stored on the membership.** That's why a banned user can't leave the class: leaving deletes the membership, and the ban would go with it.
-- **Files are stored as paths relative to `UPLOAD_DIR`.** Mappers build the public URL from `PUBLIC_URL` when responding, so moving the API to another host doesn't break existing links.
+- **Files are stored by key, not URL.** `attachments[].path` and `User.avatarPath` hold a GridFS key such as `6af3…e9.png`. Mappers build the public URL from `PUBLIC_URL` when responding, so moving the API to another host doesn't break existing links.
 - **No transactions.** A standalone MongoDB doesn't support them, and no multi-document write here needs to be atomic.
 
 ### Uploads
 
-`middleware/upload.middleware.js` sets up two Multer disk uploaders:
+Uploaded files are stored **in MongoDB itself** using GridFS (bucket `uploads`, i.e. the `uploads.files` and `uploads.chunks` collections), not on the server's disk. Hosts like Render, Railway and Heroku wipe the server's disk on every redeploy or restart, so files saved there disappear while messages still point at them.
 
-| Uploader      | Form field         | Folder                | Allowed types                     | Limits          |
-| ------------- | ------------------ | --------------------- | --------------------------------- | --------------- |
-| Attachments   | `files` (array)    | `uploads/attachments` | images, PDF, txt, zip, Office docs | 5 files × 10 MB |
-| Avatar        | `avatar`           | `uploads/avatars`     | PNG, JPEG, GIF, WebP              | 1 file × 2 MB   |
+How a file moves through the app:
 
-Files are saved as `<uuid><ext>`, where the extension comes from the **MIME type**, never from the uploaded file name. Express serves `/uploads` as static files. Images are shown inline. Everything else is sent with `Content-Disposition: attachment`, so an uploaded document is downloaded and can never run as a page on the API's domain.
+1. `middleware/upload.middleware.js`: Multer **memory storage** checks the MIME type and size and keeps the file in memory. Nothing is written to disk, so a rejected request leaves nothing to clean up.
+2. The service runs every check first (membership, mute, reply target). Only then does it call `saveUploads()` in `utils/files.js`, which writes the file to GridFS. If saving the message afterwards fails, the stored files are deleted again.
+3. `modules/uploads` serves `GET /uploads/:key` by streaming the file out of GridFS with a long-lived `Cache-Control: immutable` header.
+
+| Uploader      | Form field         | Allowed types                      | Limits          |
+| ------------- | ------------------ | ---------------------------------- | --------------- |
+| Attachments   | `files` (array)    | images, PDF, txt, zip, Office docs | 5 files × 10 MB |
+| Avatar        | `avatar`           | PNG, JPEG, GIF, WebP               | 1 file × 2 MB   |
+
+A file's key is `<GridFS ObjectId><ext>`, where the extension comes from the **MIME type**, never from the uploaded file name. Images are shown inline. Everything else is sent with `Content-Disposition: attachment`, so an uploaded document is downloaded and can never run as a page on the API's domain.
+
+Storage counts toward your database size; Atlas's free M0 tier allows 512 MB in total. If you outgrow that, only `utils/files.js` needs to change to move files to S3 or Cloudinary.
 
 ## Frontend
 

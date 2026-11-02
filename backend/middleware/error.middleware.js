@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 import multer from "multer";
 import ApiError from "../utils/ApiError.js";
 import { isProduction } from "../config/env.js";
-import { getRequestFiles, removeUploads, toRelativeUploadPath } from "../utils/files.js";
 
 const MULTER_MESSAGES = {
     LIMIT_FILE_SIZE: "File is too large",
@@ -42,15 +41,12 @@ function normalizeError(err) {
     return new ApiError(500, "ServerError", isProduction ? "Internal Server Error" : err.message);
 }
 
-export const errorHandler = async (err, req, res, next) => {
-    const error = normalizeError(err);
+export const errorHandler = (err, req, res, next) => {
+    // A stream (e.g. a file download) failed mid-response; the status line is
+    // already sent, so let Express close the connection.
+    if (res.headersSent) return next(err);
 
-    // Files are written before validation runs; don't leave orphans behind
-    // when the request fails.
-    const uploaded = getRequestFiles(req);
-    if (uploaded.length > 0) {
-        await removeUploads(uploaded.map((file) => toRelativeUploadPath(file.path)));
-    }
+    const error = normalizeError(err);
 
     const log = error.statusCode >= 500 ? req.log.error : req.log.warn;
     log.call(req.log, {

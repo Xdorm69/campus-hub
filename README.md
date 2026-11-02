@@ -2,7 +2,7 @@
 
 A chat app for university classes, styled after Discord and Slack. Every class is a chat room where students can talk, share files, reply to and react to messages. Moderators and admins keep each room in order.
 
-- **Backend:** Express 5 · MongoDB (Mongoose) · Multer uploads · JWT in an httpOnly cookie · Zod · Pino
+- **Backend:** Express 5 · MongoDB (Mongoose) · Multer + GridFS uploads · JWT in an httpOnly cookie · Zod · Pino
 - **Frontend:** Next.js 16 (App Router) · React 19 · TanStack Query · Tailwind CSS · Radix UI · React Hook Form
 
 ## Features

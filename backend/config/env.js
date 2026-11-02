@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import path from "node:path";
 
 dotenv.config();
 
@@ -14,13 +13,20 @@ export const envConfig = {
     BCRYPT_ROUNDS: Number(process.env.BCRYPT_ROUNDS) || 10,
     LOG_LEVEL: process.env.LOG_LEVEL || "info",
     FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
-    // Public origin of this API, used to build absolute URLs for uploaded files.
-    PUBLIC_URL: process.env.PUBLIC_URL || `http://localhost:${PORT}`,
-    UPLOAD_DIR: path.resolve(process.env.UPLOAD_DIR || "uploads"),
+    // Public origin of this API (no trailing slash), used to build file URLs.
+    PUBLIC_URL: (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, ""),
 };
 
 export const isProduction = envConfig.NODE_ENV === "production";
 
 if (!envConfig.JWT_SECRET) {
     throw new Error("JWT_SECRET is not set. Add it to backend/.env");
+}
+
+if (isProduction && !process.env.PUBLIC_URL) {
+    // Without it every image/file link points at localhost and breaks.
+    console.warn(
+        "[config] PUBLIC_URL is not set — uploaded file URLs will use http://localhost. " +
+            "Set it to this API's public origin, e.g. https://your-api.onrender.com"
+    );
 }

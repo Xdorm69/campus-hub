@@ -1,45 +1,90 @@
-import fs from "node:fs/promises";
-import path from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import mongoose from "mongoose";
 import { envConfig } from "../config/env.js";
+import { ATTACHMENT_MIME_TYPES } from "../constants/upload.js";
 import { logger } from "./logger.js";
 
-/** Builds the public URL for a path stored relative to the upload dir. */
-export function toPublicUrl(relativePath) {
-    if (!relativePath) return null;
-    return `${envConfig.PUBLIC_URL}/uploads/${relativePath.split(path.sep).join("/")}`;
+/**
+ * Uploads live in MongoDB GridFS (bucket "uploads"), not on local disk, so
+ * they survive redeploys and restarts on hosts with ephemeral filesystems
+ * (Render, Railway, Heroku...).
+ *
+ * A stored file is referenced by its "key": `<gridfs ObjectId><ext>`,
+ * e.g. "6af3c1...e9.png". The extension only makes URLs readable.
+ */
+const BUCKET_NAME = "uploads";
+
+let bucket = null;
+
+function getBucket() {
+    if (!bucket) {
+        bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: BUCKET_NAME });
+    }
+    return bucket;
 }
 
-/** Path relative to the upload dir for a file multer just wrote to disk. */
-export function toRelativeUploadPath(absolutePath) {
-    return path.relative(envConfig.UPLOAD_DIR, absolutePath).split(path.sep).join("/");
+/** GridFS id for a key, or null for malformed/legacy (disk-era) keys. */
+function parseKey(key) {
+    const id = typeof key === "string" ? key.split(".")[0] : "";
+    return mongoose.isObjectIdOrHexString(id) ? new mongoose.Types.ObjectId(id) : null;
+}
+
+/** Builds the public URL for a stored file key. */
+export function toPublicUrl(key) {
+    if (!key) return null;
+    return `${envConfig.PUBLIC_URL}/uploads/${key}`;
+}
+
+/** Writes one multer (memory storage) file to GridFS and returns its key. */
+export async function saveUpload(file, folder) {
+    const id = new mongoose.Types.ObjectId();
+    const extension = ATTACHMENT_MIME_TYPES[file.mimetype] ?? "";
+
+    const stream = getBucket().openUploadStreamWithId(id, file.originalname, {
+        metadata: { contentType: file.mimetype, folder },
+    });
+    await pipeline(Readable.from(file.buffer), stream);
+
+    return `${id}${extension}`;
+}
+
+/** Saves several files; if any fails, the ones already written are removed. */
+export async function saveUploads(files, folder) {
+    const results = await Promise.allSettled(files.map((file) => saveUpload(file, folder)));
+    const keys = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
+
+    const failure = results.find((r) => r.status === "rejected");
+    if (failure) {
+        await removeUploads(keys);
+        throw failure.reason;
+    }
+
+    return keys;
 }
 
 /** Best-effort delete; a missing file is not an error worth failing a request over. */
-export async function removeUploads(relativePaths) {
-    const paths = relativePaths.filter(Boolean);
-
+export async function removeUploads(keys) {
     await Promise.all(
-        paths.map(async (relativePath) => {
-            const absolutePath = path.resolve(envConfig.UPLOAD_DIR, relativePath);
-
-            // Never follow a stored path outside the upload directory.
-            if (!absolutePath.startsWith(envConfig.UPLOAD_DIR + path.sep)) return;
-
+        keys.map(parseKey).filter(Boolean).map(async (id) => {
             try {
-                await fs.unlink(absolutePath);
+                await getBucket().delete(id);
             } catch (error) {
-                if (error.code !== "ENOENT") {
-                    logger.warn({ err: error, path: relativePath }, "Failed to remove upload");
+                if (!/FileNotFound|file not found/i.test(error.message)) {
+                    logger.warn({ err: error, id: String(id) }, "Failed to remove upload");
                 }
             }
         })
     );
 }
 
-/** Files multer attached to a request, regardless of single/array mode. */
-export function getRequestFiles(req) {
-    if (req.file) return [req.file];
-    if (Array.isArray(req.files)) return req.files;
-    if (req.files) return Object.values(req.files).flat();
-    return [];
+/** File document (name, length, metadata) for a key, or null. */
+export async function findUpload(key) {
+    const id = parseKey(key);
+    if (!id) return null;
+    return getBucket().find({ _id: id }).next();
+}
+
+export function openUploadStream(fileId) {
+    return getBucket().openDownloadStream(fileId);
 }

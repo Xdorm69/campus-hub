@@ -9,12 +9,9 @@ import { errorHandler, notFoundHandler } from "../middleware/error.middleware.js
 import { apiLimiter } from "../utils/rateLimiter.js";
 import { corsConfig } from "../config/cors.js";
 import { pinoConfig } from "../config/pino.js";
-import { envConfig } from "../config/env.js";
-import { IMAGE_MIME_TYPES } from "../constants/upload.js";
+import uploadsRouter from "../modules/uploads/uploads.router.js";
 
 const app = express();
-
-const inlineExtensions = new Set(Object.values(IMAGE_MIME_TYPES));
 
 app.set("trust proxy", 1);
 app.use(
@@ -30,22 +27,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(pinoHttp(pinoConfig));
 app.use(cookieParser());
 
-// Uploaded files. Only images render inline; everything else downloads, so
-// an uploaded document can never execute in this origin.
-app.use(
-    "/uploads",
-    express.static(envConfig.UPLOAD_DIR, {
-        index: false,
-        maxAge: "7d",
-        immutable: true,
-        setHeaders: (res, filePath) => {
-            const extension = filePath.slice(filePath.lastIndexOf(".")).toLowerCase();
-            if (!inlineExtensions.has(extension)) {
-                res.setHeader("Content-Disposition", "attachment");
-            }
-        },
-    })
-);
+// Uploaded files, streamed from MongoDB GridFS.
+app.use("/uploads", uploadsRouter);
 
 app.use("/api/v1", apiLimiter, routes);
 app.use(notFoundHandler);
