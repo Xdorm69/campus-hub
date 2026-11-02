@@ -11,6 +11,7 @@ import { formatBytes, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useChat } from "./ChatContext";
 import { ComposerAttachments } from "./ComposerAttachments";
+import { GifPicker } from "./GifPicker";
 import { VoiceRecorderBar } from "./VoiceRecorderBar";
 
 const ACCEPTED_TYPES: readonly string[] = ATTACHMENT_LIMITS.ACCEPT;
@@ -180,6 +181,13 @@ export function MessageComposer() {
                   {remaining}
                 </span>
               )}
+
+              <GifPicker
+                onPick={(gif) => {
+                  sendMessage.mutate({ content: "", files: [], gif, replyTo: replyingTo });
+                  afterSend();
+                }}
+              />
 
               {/* Empty composer -> mic (record a voice message); otherwise send. */}
               {!canSend && recorder.isSupported ? (

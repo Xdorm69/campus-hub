@@ -6,10 +6,26 @@ const REPLY_PREVIEW_LENGTH = 200;
 function toAttachmentDTO(attachment) {
     return {
         id: String(attachment._id),
+        // null once the retention job has removed the file (videos).
         url: toPublicUrl(attachment.path),
         name: attachment.originalName,
         mimeType: attachment.mimeType,
         size: attachment.size,
+        isExpired: Boolean(attachment.expiredAt),
+    };
+}
+
+function toGifDTO(gif) {
+    if (!gif) return null;
+
+    return {
+        provider: gif.provider,
+        providerId: gif.providerId,
+        title: gif.title,
+        url: gif.url,
+        previewUrl: gif.previewUrl ?? null,
+        width: gif.width,
+        height: gif.height,
     };
 }
 
@@ -25,6 +41,7 @@ function toReplyPreviewDTO(reply) {
         content: isDeleted ? "" : reply.content.slice(0, REPLY_PREVIEW_LENGTH),
         hasAttachments: !isDeleted && reply.attachments?.length > 0,
         hasVoiceNote: !isDeleted && Boolean(reply.voiceNote),
+        hasGif: !isDeleted && Boolean(reply.gif),
         isDeleted,
     };
 }
@@ -50,6 +67,7 @@ export function toMessageDTO(message) {
         content: message.content,
         attachments: (message.attachments ?? []).map(toAttachmentDTO),
         voiceNote: toVoiceNoteDTO(message.voiceNote),
+        gif: toGifDTO(message.gif),
         replyTo: toReplyPreviewDTO(message.replyTo),
         reactions: (message.reactions ?? []).map((reaction) => ({
             emoji: reaction.emoji,

@@ -49,9 +49,13 @@ export async function saveUpload(file, folder) {
     return `${id}${extension}`;
 }
 
-/** Saves several files; if any fails, the ones already written are removed. */
+/**
+ * Saves several files; if any fails, the ones already written are removed.
+ * `folder` is a folder name, or a function picking one per file.
+ */
 export async function saveUploads(files, folder) {
-    const results = await Promise.allSettled(files.map((file) => saveUpload(file, folder)));
+    const folderFor = typeof folder === "function" ? folder : () => folder;
+    const results = await Promise.allSettled(files.map((file) => saveUpload(file, folderFor(file))));
     const keys = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
 
     const failure = results.find((r) => r.status === "rejected");

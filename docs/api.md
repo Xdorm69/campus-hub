@@ -28,10 +28,10 @@ Errors:
 | 403    | `ForbiddenError`                             | Not a member, muted, banned, not a moderator |
 | 404    | `NotFoundError`                              | Unknown resource or route |
 | 409    | `ConflictError`                              | Duplicate email, username, class code or name; already a member |
-| 413    | `UploadError`, `VoiceNoteTooLarge`           | File too large |
+| 413    | `UploadError`, `VoiceNoteTooLarge`, `VideoTooLarge` | File too large |
 | 416    | `RangeNotSatisfiable`                        | Byte range outside the file (`/uploads`) |
-| 429    | `RateLimit`, `VoiceQuotaExceeded`            | Too many requests; daily voice allowance used up |
-| 507    | `VoiceStorageFull`                           | App-wide voice note storage cap reached |
+| 429    | `RateLimit`, `VoiceQuotaExceeded`, `VideoQuotaExceeded` | Too many requests; daily voice/video allowance used up |
+| 507    | `VoiceStorageFull`, `VideoStorageFull`       | App-wide voice/video storage cap reached |
 
 ## Shared shapes
 
@@ -49,9 +49,10 @@ ClassMember { id, userId, user: UserSummary & { bio }, isModerator, muted, banne
 
 Message {
   id, classId, author: UserSummary | null, content,
-  attachments: { id, url, name, mimeType, size }[],
+  attachments: { id, url: string | null, name, mimeType, size, isExpired }[],          // videos expire
   voiceNote: { url: string | null, mimeType, size, durationMs, isExpired } | null,   // url is null once expired
-  replyTo: { id, author, content, hasAttachments, hasVoiceNote, isDeleted } | null,
+  gif: { provider, providerId, title, url, previewUrl, width, height } | null,       // provider-hosted
+  replyTo: { id, author, content, hasAttachments, hasVoiceNote, hasGif, isDeleted } | null,
   reactions: { emoji, count, userIds }[],
   editedAt, deletedAt, createdAt, updatedAt
 }
@@ -147,7 +148,8 @@ Full design: [realtime-chat.md](realtime-chat.md).
 | --------- | -------------------- | ----- |
 | `content` | string               | Up to 4000 characters. Can be empty if files are attached |
 | `replyTo` | message id           | Optional; must be a message in the same class that hasn't been deleted |
-| `files`   | file (repeat the field) | Up to 5, 10 MB each: PNG/JPEG/GIF/WebP, PDF, TXT, ZIP, DOC(X), XLS(X), PPT(X) |
+| `files`   | file (repeat the field) | Up to 5, 10 MB each: PNG/JPEG/GIF/WebP, MP4/WebM/MOV video, PDF, TXT, ZIP, DOC(X), XLS(X), PPT(X). Videos count toward the video limits |
+| `gif`     | object (JSON body only) | `{ provider: "klipy" | "giphy", providerId, title, url, previewUrl, width, height }` from the GIF picker. Every URL must be `https` on that provider's CDN. Can't be combined with `content`, `files` or `voice` |
 | `voice`   | file                 | A voice note: WebM, Ogg, MP4/M4A, AAC or MP3 audio, up to 1.5 MB. A codec suffix such as `audio/webm;codecs=opus` is fine |
 | `voiceDurationMs` | number       | Required with `voice`; up to 120000 (2 minutes) |
 
@@ -159,7 +161,7 @@ Returns `201 Message`. Muted, banned and non-member users get 403.
 | ----- | ------- | ----- |
 | Size of this note | 1.5 MB | `413 VoiceNoteTooLarge` |
 | Sender's voice notes in the last 24 hours | `VOICE_DAILY_LIMIT_MB` = 5 MB | `429 VoiceQuotaExceeded` |
-| All stored voice notes in the app | `VOICE_STORAGE_LIMIT_MB` = 200 MB | `507 VoiceStorageFull` |
+| All stored voice notes in the app | `VOICE_STORAGE_LIMIT_MB` = 100 MB | `507 VoiceStorageFull` |
 
 After `VOICE_RETENTION_DAYS` (default 30) the audio is deleted. The message stays, with `voiceNote.isExpired: true` and `url: null`.
 

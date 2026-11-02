@@ -20,7 +20,13 @@ export function ReplyReference({ reply }: { reply: ReplyPreview }) {
   const label = reply.isDeleted
     ? "Original message was deleted"
     : reply.content ||
-      (reply.hasVoiceNote ? "Voice message" : reply.hasAttachments ? "Click to see attachment" : "");
+      (reply.hasVoiceNote
+        ? "Voice message"
+        : reply.hasGif
+          ? "GIF"
+          : reply.hasAttachments
+            ? "Click to see attachment"
+            : "");
 
   return (
     <button

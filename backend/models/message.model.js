@@ -1,12 +1,29 @@
 import mongoose from "mongoose";
 
 const attachmentSchema = new mongoose.Schema({
-    // GridFS key, e.g. "<objectId>.pdf" (see utils/files.js).
-    path: { type: String, required: true },
+    // GridFS key, e.g. "<objectId>.pdf" (see utils/files.js). null once the
+    // retention job has deleted the file (videos only).
+    path: { type: String, default: null },
     originalName: { type: String, required: true },
     mimeType: { type: String, required: true },
     size: { type: Number, required: true },
+    expiredAt: { type: Date, default: null },
 });
+
+// A GIF picked from a provider's search. Nothing is stored in GridFS: the
+// URLs point at the provider's CDN, as their terms require.
+const gifSchema = new mongoose.Schema(
+    {
+        provider: { type: String, required: true },
+        providerId: { type: String, required: true },
+        title: { type: String, default: "" },
+        url: { type: String, required: true }, // full-size MP4/GIF/WebP
+        previewUrl: { type: String, default: null }, // still/small image
+        width: { type: Number, required: true },
+        height: { type: Number, required: true },
+    },
+    { _id: false }
+);
 
 const voiceNoteSchema = new mongoose.Schema(
     {
@@ -49,6 +66,7 @@ const messageSchema = new mongoose.Schema(
         },
         attachments: [attachmentSchema],
         voiceNote: { type: voiceNoteSchema, default: null },
+        gif: { type: gifSchema, default: null },
         replyTo: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Message",
@@ -72,5 +90,7 @@ messageSchema.index(
     { createdAt: 1 },
     { partialFilterExpression: { "voiceNote.path": { $type: "string" } } }
 );
+// Video retention: "messages with a video attachment, oldest first".
+messageSchema.index({ "attachments.mimeType": 1, createdAt: 1 });
 
 export const Message = mongoose.model("Message", messageSchema);

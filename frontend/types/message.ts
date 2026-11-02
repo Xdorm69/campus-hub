@@ -2,10 +2,25 @@ import { UserSummary } from "./user";
 
 export interface Attachment {
   id: string;
-  url: string;
+  /** "" for optimistic non-previewable files; null once a video has expired. */
+  url: string | null;
   name: string;
   mimeType: string;
   size: number;
+  isExpired?: boolean;
+}
+
+/** A GIF from the provider's search; its URLs point at the provider's CDN. */
+export interface GifEmbed {
+  provider: "klipy" | "giphy";
+  providerId: string;
+  title: string;
+  /** Full-size loop (MP4 where available). */
+  url: string;
+  /** Small still/animated image for placeholders. */
+  previewUrl: string | null;
+  width: number;
+  height: number;
 }
 
 export interface VoiceNote {
@@ -23,6 +38,7 @@ export interface ReplyPreview {
   content: string;
   hasAttachments: boolean;
   hasVoiceNote: boolean;
+  hasGif: boolean;
   isDeleted: boolean;
 }
 
@@ -41,8 +57,9 @@ export interface Reaction {
 export interface SendMessagePayload {
   content: string;
   files: File[];
-  /** Voice messages stand alone: no text or files alongside. */
+  /** Voice messages and GIFs stand alone: no text or files alongside. */
   voice?: VoiceRecording | null;
+  gif?: GifEmbed | null;
   replyTo?: Message | null;
 }
 
@@ -54,6 +71,7 @@ export interface Message {
   content: string;
   attachments: Attachment[];
   voiceNote: VoiceNote | null;
+  gif: GifEmbed | null;
   replyTo: ReplyPreview | null;
   reactions: Reaction[];
   editedAt: string | null;

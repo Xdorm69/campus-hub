@@ -17,14 +17,19 @@
 | `SEED_ADMIN_PASSWORD`  | none                                      | Used by `pnpm seed` |
 | `SEED_ADMIN_USERNAME`  | `admin`                                   | Used by `pnpm seed` |
 | `VOICE_DAILY_LIMIT_MB` | `5`                                       | Voice notes each user may send per rolling 24 hours |
-| `VOICE_STORAGE_LIMIT_MB` | `200`                                   | Maximum total size of all stored voice notes. New notes are refused with 507 once it's reached |
+| `VOICE_STORAGE_LIMIT_MB` | `100`                                   | Maximum total size of all stored voice notes. New notes are refused with 507 once it's reached |
 | `VOICE_RETENTION_DAYS` | `30`                                      | Voice note audio is deleted after this many days (the message stays, marked expired) |
+| `VIDEO_DAILY_LIMIT_MB` | `30`                                      | Video each user may upload per rolling 24 hours |
+| `VIDEO_STORAGE_LIMIT_MB` | `150`                                   | Maximum total size of all stored videos (507 once reached) |
+| `VIDEO_RETENTION_DAYS` | `30`                                      | Videos are deleted after this many days (shown as "Video expired") |
 
 ## Frontend: `frontend/.env`
 
 | Variable              | Default                          | Notes |
 | --------------------- | -------------------------------- | ----- |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:4000/api/v1`   | Must end in `/api/v1` |
+| `NEXT_PUBLIC_GIF_PROVIDER` | `klipy`                     | `klipy` or `giphy` |
+| `NEXT_PUBLIC_GIF_API_KEY` | none                         | GIF picker key; without it the GIF button is hidden. See [GIFs & videos](gifs-and-videos.md) |
 
 Polling intervals, page size and upload limits are set in `frontend/lib/constants.ts`. Keep the upload limits there in line with `backend/constants/upload.js`.
 
@@ -39,6 +44,8 @@ Polling intervals, page size and upload limits are set in `frontend/lib/constant
 | Attachments per message     | 5 files, 10 MB each |
 | Avatar                      | 2 MB; PNG, JPEG, GIF or WebP |
 | Voice note                  | 2 minutes, 1.5 MB each; plus the daily, total and retention limits above |
+| Video                       | MP4/WebM/MOV, 10 MB each; plus the daily, total and retention limits above |
+| GIF                         | No storage used (provider-hosted) |
 | Different reactions per message | 20 |
 | Username                    | 3–20 characters: letters, numbers, `_` |
 | Password                    | 8–64 characters |
@@ -52,7 +59,7 @@ The rate limiter keeps its counts in memory, so restarting the API resets them.
 
 - **Cookies across sites:** with `NODE_ENV=production` the cookie is `Secure; SameSite=None`, so the API **must be served over HTTPS**. If the frontend and API share a parent domain, consider changing the cookie to `SameSite=Lax`.
 - **Behind a proxy:** `app.set("trust proxy", 1)` assumes exactly one reverse proxy in front of the API. Change it if your setup differs, otherwise rate limiting may see the wrong client IP.
-- **Uploads are stored in MongoDB (GridFS),** so they survive redeploys and restarts on hosts with temporary disks (Render, Railway, Heroku). They count toward your database size: Atlas's free tier allows 512 MB in total. Voice notes are capped by `VOICE_STORAGE_LIMIT_MB`, so leave room for attachments and the data itself when choosing it. On the free tier, 200 MB or less is sensible.
+- **Uploads are stored in MongoDB (GridFS),** so they survive redeploys and restarts on hosts with temporary disks (Render, Railway, Heroku). They count toward your database size: Atlas's free tier allows 512 MB in total. Voice notes and videos are capped by `VOICE_STORAGE_LIMIT_MB` and `VIDEO_STORAGE_LIMIT_MB` (100 + 150 MB by default), so leave room for images, documents and the data itself when raising them. GIFs use no storage.
 - **Voice recording needs HTTPS:** browsers only allow microphone access on `https://` origins (or `localhost`). Over plain HTTP the mic button is hidden.
 - **Uploads are public by URL:** anyone with a file's link can open it. Keys are random ObjectIds, so links are hard to guess, but they aren't checked against class membership. If attachments must be members-only, add `authenticate` and a membership check to `modules/uploads`.
 - **Several API instances:** move the rate-limiter counts to a shared store (e.g. Redis). Uploads already live in the shared database.

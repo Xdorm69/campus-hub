@@ -1,13 +1,13 @@
 import { ROLES } from "../../constants/roles.js";
 import { BadRequestError, ForbiddenError, NotFoundError } from "../../utils/ApiError.js";
-import { UPLOAD_FOLDERS } from "../../constants/upload.js";
+import { folderForAttachment, isVideoType, UPLOAD_FOLDERS } from "../../constants/upload.js";
 import { removeUploads, saveUploads } from "../../utils/files.js";
 import { classesRepository } from "../classes/classes.repository.js";
 import { membershipRepository } from "../membership/membership.repository.js";
 import { membershipService } from "../membership/membership.service.js";
 import { messagesRepository } from "./messages.repository.js";
 import { toMessageDTO } from "./messages.mapper.js";
-import { assertVoiceNoteAllowed } from "./voice-quota.js";
+import { assertMediaAllowed } from "./media-quota.js";
 
 // A write stamps `updatedAt` slightly before it becomes visible to queries.
 // Re-scanning a few seconds back means a poll can't slip between the two;
@@ -20,6 +20,27 @@ async function findLiveMessage(messageId) {
     const message = await messagesRepository.findById(messageId);
     if (!message || message.deletedAt) throw new NotFoundError("Message not found");
     return message;
+}
+
+/** Voice notes and GIFs stand alone, like Discord's; anything else needs content or files. */
+function assertMessageShape({ content, files, voice, gif, voiceDurationMs }) {
+    if (voice && gif) {
+        throw new BadRequestError("Send a voice message or a GIF, not both");
+    }
+
+    if (voice || gif) {
+        if (content || files.length > 0) {
+            throw new BadRequestError(`${voice ? "Voice messages" : "GIFs"} can't include text or files`);
+        }
+        if (voice && voiceDurationMs === undefined) {
+            throw new BadRequestError("voiceDurationMs is required with a voice message");
+        }
+        return;
+    }
+
+    if (!content && files.length === 0) {
+        throw new BadRequestError("Message can't be empty");
+    }
 }
 
 function toAttachment(file, key) {
@@ -67,20 +88,14 @@ export const messagesService = {
         };
     },
 
-    sendMessage: async (user, classId, { content, replyTo, voiceDurationMs }, { files = [], voice = null } = {}) => {
+    sendMessage: async (
+        user,
+        classId,
+        { content, replyTo, voiceDurationMs, gif },
+        { files = [], voice = null } = {}
+    ) => {
         await membershipService.assertCanPost(user, classId);
-
-        if (voice) {
-            // Voice messages stand alone, like Discord's.
-            if (content || files.length > 0) {
-                throw new BadRequestError("Voice messages can't include text or files");
-            }
-            if (voiceDurationMs === undefined) {
-                throw new BadRequestError("voiceDurationMs is required with a voice message");
-            }
-        } else if (!content && files.length === 0) {
-            throw new BadRequestError("Message can't be empty");
-        }
+        assertMessageShape({ content, files, voice, gif, voiceDurationMs });
 
         if (replyTo) {
             const parent = await messagesRepository.findById(replyTo);
@@ -89,11 +104,18 @@ export const messagesService = {
             }
         }
 
-        if (voice) await assertVoiceNoteAllowed(user.id, voice.size);
+        // Storage guards run before anything is written.
+        if (voice) await assertMediaAllowed("voice", user.id, [voice.size]);
+        await assertMediaAllowed(
+            "video",
+            user.id,
+            files.filter((file) => isVideoType(file.mimetype)).map((file) => file.size)
+        );
 
-        // Files are stored only after every check has passed.
+        // Files are stored only after every check has passed. Videos go to
+        // their own GridFS folder so their total can be capped separately.
         const [attachmentKeys, [voiceKey]] = await Promise.all([
-            saveUploads(files, UPLOAD_FOLDERS.ATTACHMENTS),
+            saveUploads(files, (file) => folderForAttachment(file.mimetype)),
             saveUploads(voice ? [voice] : [], UPLOAD_FOLDERS.VOICE),
         ]);
         const storedKeys = [...attachmentKeys, voiceKey].filter(Boolean);
@@ -114,6 +136,7 @@ export const messagesService = {
                           durationMs: voiceDurationMs,
                       }
                     : null,
+                gif: gif ?? null,
             });
         } catch (error) {
             await removeUploads(storedKeys);
@@ -135,8 +158,8 @@ export const messagesService = {
         if (String(message.author?._id) !== user.id) {
             throw new ForbiddenError("You can only edit your own messages");
         }
-        if (message.voiceNote) {
-            throw new BadRequestError("Voice messages can't be edited");
+        if (message.voiceNote || message.gif) {
+            throw new BadRequestError(`${message.gif ? "GIFs" : "Voice messages"} can't be edited`);
         }
         await membershipService.assertCanPost(user, String(message.class));
 
@@ -171,6 +194,7 @@ export const messagesService = {
             content: "",
             attachments: [],
             voiceNote: null,
+            gif: null,
             reactions: [],
         });
         await removeUploads([

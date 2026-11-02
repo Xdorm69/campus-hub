@@ -1,9 +1,10 @@
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, VideoOff } from "lucide-react";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Attachment } from "@/types/message";
 
 const isImage = (attachment: Attachment) => attachment.mimeType.startsWith("image/");
+const isVideo = (attachment: Attachment) => attachment.mimeType.startsWith("video/");
 
 function ImageAttachment({ attachment }: { attachment: Attachment }) {
   // Optimistic non-image previews have no URL yet.
@@ -24,6 +25,31 @@ function ImageAttachment({ attachment }: { attachment: Attachment }) {
         className="max-h-80 w-auto max-w-full object-contain"
       />
     </a>
+  );
+}
+
+function VideoAttachment({ attachment }: { attachment: Attachment }) {
+  if (attachment.isExpired || !attachment.url) {
+    return (
+      <div className="flex w-full max-w-sm items-center gap-3 rounded-lg border border-border bg-muted/60 p-3 text-sm text-muted-foreground">
+        <VideoOff className="h-6 w-6 shrink-0" />
+        <span className="min-w-0 truncate">
+          {attachment.isExpired ? "Video expired" : attachment.name} · {formatBytes(attachment.size)}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <video
+      src={attachment.url}
+      controls
+      playsInline
+      // Only fetch the first frames until the user presses play.
+      preload="metadata"
+      className="max-h-80 w-full max-w-md rounded-lg bg-black"
+      aria-label={attachment.name}
+    />
   );
 }
 
@@ -64,7 +90,8 @@ export function MessageAttachments({ attachments }: { attachments: Attachment[] 
   if (attachments.length === 0) return null;
 
   const images = attachments.filter(isImage);
-  const files = attachments.filter((a) => !isImage(a));
+  const videos = attachments.filter(isVideo);
+  const files = attachments.filter((a) => !isImage(a) && !isVideo(a));
 
   return (
     <div className="mt-1 space-y-1.5">
@@ -75,6 +102,9 @@ export function MessageAttachments({ attachments }: { attachments: Attachment[] 
           ))}
         </div>
       )}
+      {videos.map((attachment) => (
+        <VideoAttachment key={attachment.id} attachment={attachment} />
+      ))}
       {files.map((attachment) => (
         <FileAttachment key={attachment.id} attachment={attachment} />
       ))}

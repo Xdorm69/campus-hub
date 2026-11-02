@@ -78,7 +78,7 @@ How a file moves through the app:
 
 | Uploader      | Form field         | Allowed types                      | Limits          |
 | ------------- | ------------------ | ---------------------------------- | --------------- |
-| Attachments   | `files` (array)    | images, PDF, txt, zip, Office docs | 5 files × 10 MB |
+| Attachments   | `files` (array)    | images, videos (MP4/WebM/MOV), PDF, txt, zip, Office docs | 5 files × 10 MB |
 | Avatar        | `avatar`           | PNG, JPEG, GIF, WebP               | 1 file × 2 MB   |
 | Voice note    | `voice`            | WebM, Ogg, MP4/M4A, AAC, MP3 audio | 1 file × 1.5 MB, 2 min |
 
@@ -86,18 +86,18 @@ A file's key is `<GridFS ObjectId><ext>`, where the extension comes from the **M
 
 Storage counts toward your database size; Atlas's free M0 tier allows 512 MB in total. If you outgrow that, only `utils/files.js` needs to change to move files to S3 or Cloudinary.
 
-### Voice notes
+### Voice notes & videos
 
-Voice notes are the easiest way to fill the database, so they're bounded in four ways:
+Voice notes and videos are the easiest way to fill the database, so each is bounded in four ways. Videos are stored in their own GridFS folder (`video`), so images and documents don't count toward the video cap. The limits below are for voice notes; videos have the same set (`VIDEO_*`, 10 MB per video, 30 MB per user per day, 150 MB in total, 30 days). See [GIFs & videos](gifs-and-videos.md). GIFs are never stored: a message keeps only the provider's CDN URLs, and the backend accepts only URLs on that provider's hosts.
 
 | Guard | Where | Default |
 | ----- | ----- | ------- |
 | Per note: size and length | `constants/upload.js` `VOICE_LIMITS`; the recorder stops itself at 2 minutes | 1.5 MB, 2 min |
 | Per user: rolling 24 hours | `modules/messages/voice-quota.js` | `VOICE_DAILY_LIMIT_MB` = 5 |
-| App-wide total | `voice-quota.js`, summed over GridFS files tagged `metadata.folder: "voice"` | `VOICE_STORAGE_LIMIT_MB` = 200 |
+| App-wide total | `modules/messages/media-quota.js`, summed over GridFS files tagged `metadata.folder: "voice"` | `VOICE_STORAGE_LIMIT_MB` = 100 |
 | Retention | `jobs/voice-retention.job.js`, runs at startup and every hour | `VOICE_RETENTION_DAYS` = 30 |
 
-The quota checks run before anything is stored. The retention job deletes the audio and sets `voiceNote.path = null` and `expiredAt`. The message stays in the chat as "voice message expired", and because its `updatedAt` changes, polling clients pick up the new state. With the defaults, voice notes can never use more than 200 MB, and space is freed continuously as old notes expire. Two notes sent at the same moment can each pass the check and overshoot a limit by at most one note, which is acceptable for a storage guard.
+The quota checks run before anything is stored. The retention job deletes the audio and sets `voiceNote.path = null` and `expiredAt`. The message stays in the chat as "voice message expired", and because its `updatedAt` changes, polling clients pick up the new state. With the defaults, voice notes can never use more than 100 MB and videos 150 MB, and space is freed continuously as old notes expire. Two notes sent at the same moment can each pass the check and overshoot a limit by at most one note, which is acceptable for a storage guard.
 
 On the client, `hooks/useVoiceRecorder.ts` records with `MediaRecorder`: Opus at 32 kbps (about 240 KB per minute) where supported, or AAC/MP4 on Safari. `features/chat/VoicePlayer.tsx` shows the duration the recorder measured rather than the browser's, because WebM files from Chrome's recorder don't contain one. Recording needs a secure origin (https or localhost); where it isn't available, the mic button is hidden.
 

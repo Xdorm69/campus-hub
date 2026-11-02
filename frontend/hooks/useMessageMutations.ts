@@ -47,7 +47,7 @@ function buildOptimisticMessage(
     // Local previews; the real URLs come back from the server.
     attachments: payload.files.map((file, index) => ({
       id: `temp-file-${index}`,
-      url: file.type.startsWith("image/") ? URL.createObjectURL(file) : "",
+      url: /^(image|video)\//.test(file.type) ? URL.createObjectURL(file) : "",
       name: file.name,
       mimeType: file.type,
       size: file.size,
@@ -62,6 +62,7 @@ function buildOptimisticMessage(
           isExpired: false,
         }
       : null,
+    gif: payload.gif ?? null,
     replyTo: payload.replyTo
       ? {
           id: payload.replyTo.id,
@@ -69,6 +70,7 @@ function buildOptimisticMessage(
           content: payload.replyTo.content,
           hasAttachments: payload.replyTo.attachments.length > 0,
           hasVoiceNote: Boolean(payload.replyTo.voiceNote),
+          hasGif: Boolean(payload.replyTo.gif),
           isDeleted: false,
         }
       : null,
@@ -83,7 +85,7 @@ function buildOptimisticMessage(
 }
 
 function revokePreviewUrls(message: Message | undefined) {
-  const urls = [...(message?.attachments ?? []).map((a) => a.url), message?.voiceNote?.url ?? ""];
+  const urls = [...(message?.attachments ?? []).map((a) => a.url ?? ""), message?.voiceNote?.url ?? ""];
   urls.forEach((url) => url.startsWith("blob:") && URL.revokeObjectURL(url));
 }
 

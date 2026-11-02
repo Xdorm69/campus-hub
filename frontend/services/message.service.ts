@@ -21,7 +21,16 @@ export const messageService = {
     return data.data;
   },
 
-  async send(classId: string, { content, files, voice, replyTo }: SendMessagePayload): Promise<Message> {
+  async send(classId: string, { content, files, voice, gif, replyTo }: SendMessagePayload): Promise<Message> {
+    // GIFs carry no files, just the provider's media URLs, so they go as JSON.
+    if (gif) {
+      const { data } = await api.post<ApiResponse<Message>>(`/classes/${classId}/messages`, {
+        gif,
+        replyTo: replyTo?.id,
+      });
+      return data.data;
+    }
+
     const form = new FormData();
     form.append("content", content);
     if (replyTo) form.append("replyTo", replyTo.id);

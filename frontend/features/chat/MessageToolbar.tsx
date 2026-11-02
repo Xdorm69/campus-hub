@@ -76,7 +76,7 @@ export function MessageToolbar({ message }: { message: Message }) {
             <Reply className="h-4 w-4" />
           </ToolbarButton>
         )}
-        {isOwn && canPost && !message.voiceNote && (
+        {isOwn && canPost && !message.voiceNote && !message.gif && (
           <ToolbarButton label="Edit" onClick={() => setEditingId(message.id)}>
             <Pencil className="h-4 w-4" />
           </ToolbarButton>

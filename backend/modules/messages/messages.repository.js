@@ -7,7 +7,7 @@ const MESSAGE_POPULATE = [
     { path: "author", select: AUTHOR_FIELDS },
     {
         path: "replyTo",
-        select: "author content attachments voiceNote deletedAt",
+        select: "author content attachments voiceNote gif deletedAt",
         populate: { path: "author", select: AUTHOR_FIELDS },
     },
 ];
@@ -77,7 +77,8 @@ export const messagesRepository = {
         ).lean();
 
         return messages.flatMap((message) => [
-            ...(message.attachments ?? []).map((a) => a.path),
+            // Expired videos have no stored file (path null).
+            ...(message.attachments ?? []).map((a) => a.path).filter(Boolean),
             ...(message.voiceNote?.path ? [message.voiceNote.path] : []),
         ]);
     },
@@ -97,6 +98,45 @@ export const messagesRepository = {
 
         return { bytes: row?.bytes ?? 0, count: row?.count ?? 0 };
     },
+
+    /** Count and bytes of an author's video attachments created since `since`. */
+    videoUsageByAuthorSince: async (authorId, since) => {
+        const [row] = await Message.aggregate([
+            {
+                $match: {
+                    author: new mongoose.Types.ObjectId(String(authorId)),
+                    createdAt: { $gte: since },
+                    "attachments.mimeType": { $regex: /^video\// },
+                },
+            },
+            { $unwind: "$attachments" },
+            { $match: { "attachments.mimeType": { $regex: /^video\// } } },
+            { $group: { _id: null, bytes: { $sum: "$attachments.size" }, count: { $sum: 1 } } },
+        ]);
+
+        return { bytes: row?.bytes ?? 0, count: row?.count ?? 0 };
+    },
+
+    /** Messages created before `before` that still have a stored video. */
+    findVideoMessagesOlderThan: (before, limit) =>
+        Message.find(
+            {
+                createdAt: { $lt: before },
+                attachments: { $elemMatch: { mimeType: /^video\//, path: { $type: "string" } } },
+            },
+            { attachments: 1 }
+        )
+            .sort({ createdAt: 1 })
+            .limit(limit)
+            .lean(),
+
+    /** Drops the stored file of every video attachment on these messages. */
+    expireVideoAttachments: (messageIds) =>
+        Message.updateMany(
+            { _id: { $in: messageIds } },
+            { $set: { "attachments.$[video].path": null, "attachments.$[video].expiredAt": new Date() } },
+            { arrayFilters: [{ "video.mimeType": /^video\//, "video.path": { $type: "string" } }] }
+        ),
 
     /** Oldest voice notes whose audio is still stored, created before `before`. */
     findVoiceNotesOlderThan: (before, limit) =>

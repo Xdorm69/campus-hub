@@ -15,6 +15,7 @@ import { MessageEditor } from "./MessageEditor";
 import { MessageReactions } from "./MessageReactions";
 import { MessageToolbar } from "./MessageToolbar";
 import { ReplyReference } from "./ReplyReference";
+import { MessageGif } from "./MessageGif";
 import { VoicePlayer } from "./VoicePlayer";
 
 interface MessageItemProps {
@@ -156,6 +157,7 @@ function MessageItemComponent({ message, isGrouped }: MessageItemProps) {
               )}
               <MessageAttachments attachments={message.attachments} />
               {message.voiceNote && <VoicePlayer voiceNote={message.voiceNote} seed={message.id} />}
+              {message.gif && <MessageGif gif={message.gif} />}
             </div>
           )}
 

@@ -9,7 +9,8 @@ A chat app for university classes, styled after Discord and Slack. Every class i
 
 - **Chat rooms per class:** message history loads as you scroll up, and new messages arrive by polling (no WebSocket server needed). Messages support simple formatting (`**bold**`, `*italic*`, `` `code` ``, code blocks, links).
 - **Messages:** send, edit, delete, reply, emoji reactions, and file/image attachments (paste an image to attach it). A failed send can be retried.
-- **Voice messages:** record up to 2 minutes from the composer and play them back with seeking and 1×/1.5×/2× speed. Storage is capped per note, per user per day and in total, and old notes expire automatically ([details](docs/architecture.md#voice-notes)).
+- **Voice messages:** record up to 2 minutes from the composer and play them back with seeking and 1×/1.5×/2× speed. Storage is capped per note, per user per day and in total, and old notes expire automatically ([details](docs/architecture.md#voice-notes--videos)).
+- **GIFs & videos:** a Discord-style GIF picker (KLIPY or GIPHY; GIFs use no storage) and inline playback for small video uploads, with the same storage limits as voice notes ([setup](docs/gifs-and-videos.md)).
 - **Unread badges** in the sidebar, cleared once you've read the room.
 - **Classes:** browse and search, join and leave. Admins create, edit and delete classes.
 - **Moderation:** mute, ban, kick, and promote or demote moderators. Rules are enforced on the server ([permissions](docs/permissions.md)).
@@ -83,3 +84,4 @@ Campus_Hub/
 | [API reference](docs/api.md)                   | Every endpoint, with request and response shapes       |
 | [Permissions](docs/permissions.md)             | Roles and who is allowed to do what                    |
 | [Configuration](docs/configuration.md)         | Environment variables, limits, deployment notes        |
+| [GIFs & videos](docs/gifs-and-videos.md)        | Getting a free GIF API key, and video limits            |

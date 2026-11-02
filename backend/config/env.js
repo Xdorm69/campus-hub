@@ -16,11 +16,15 @@ export const envConfig = {
     // Public origin of this API (no trailing slash), used to build file URLs.
     PUBLIC_URL: (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, ""),
 
-    // Voice notes are the easiest way to fill the database, so they're capped
-    // three ways: per user per day, in total, and by age.
+    // Voice notes and videos are the easiest way to fill the database, so each
+    // is capped three ways: per user per day, in total, and by age. Defaults
+    // keep both together under 250 MB, leaving room on Atlas's 512 MB free tier.
     VOICE_DAILY_LIMIT_MB: Number(process.env.VOICE_DAILY_LIMIT_MB) || 5,
-    VOICE_STORAGE_LIMIT_MB: Number(process.env.VOICE_STORAGE_LIMIT_MB) || 200,
+    VOICE_STORAGE_LIMIT_MB: Number(process.env.VOICE_STORAGE_LIMIT_MB) || 100,
     VOICE_RETENTION_DAYS: Number(process.env.VOICE_RETENTION_DAYS) || 30,
+    VIDEO_DAILY_LIMIT_MB: Number(process.env.VIDEO_DAILY_LIMIT_MB) || 30,
+    VIDEO_STORAGE_LIMIT_MB: Number(process.env.VIDEO_STORAGE_LIMIT_MB) || 150,
+    VIDEO_RETENTION_DAYS: Number(process.env.VIDEO_RETENTION_DAYS) || 30,
 };
 
 export const isProduction = envConfig.NODE_ENV === "production";

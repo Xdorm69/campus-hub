@@ -22,6 +22,9 @@ export const ATTACHMENT_LIMITS = {
     "image/jpeg",
     "image/gif",
     "image/webp",
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
     "application/pdf",
     "text/plain",
     "application/zip",
@@ -45,6 +48,9 @@ export const VOICE_LIMITS = {
   /** Preferred recorder formats, best first (Safari only supports mp4). */
   MIME_TYPES: ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/webm", "audio/mp4"],
 } as const;
+
+/** GIF picker paging; KLIPY accepts 8–50 per page, GIPHY up to 50. */
+export const GIF_PAGE_SIZE = 24;
 
 export const AVATAR_LIMITS = {
   MAX_SIZE: 2 * MB,

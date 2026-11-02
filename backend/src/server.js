@@ -1,12 +1,12 @@
 import { envConfig } from "../config/env.js";
 import { connectDatabase, disconnectDatabase } from "../config/db.js";
 import { logger } from "../utils/logger.js";
-import { startVoiceRetentionJob } from "../jobs/voice-retention.job.js";
+import { startMediaRetentionJob } from "../jobs/media-retention.job.js";
 import app from "./app.js";
 
 async function start() {
     await connectDatabase();
-    startVoiceRetentionJob();
+    startMediaRetentionJob();
 
     const server = app.listen(envConfig.PORT, () => {
         logger.info(`Server is running on http://localhost:${envConfig.PORT}`);

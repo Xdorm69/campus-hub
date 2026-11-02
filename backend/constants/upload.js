@@ -9,8 +9,17 @@ export const IMAGE_MIME_TYPES = {
     "image/webp": ".webp",
 };
 
+// Short clips from phones and screen recorders. iPhones record .mov
+// (QuickTime), which browsers play when it's H.264.
+export const VIDEO_MIME_TYPES = {
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
+    "video/quicktime": ".mov",
+};
+
 export const ATTACHMENT_MIME_TYPES = {
     ...IMAGE_MIME_TYPES,
+    ...VIDEO_MIME_TYPES,
     "application/pdf": ".pdf",
     "text/plain": ".txt",
     "application/zip": ".zip",
@@ -37,7 +46,9 @@ export const AUDIO_MIME_TYPES = {
 export const ALL_MIME_TYPES = { ...ATTACHMENT_MIME_TYPES, ...AUDIO_MIME_TYPES };
 
 /** Types the browser may render/play inline instead of downloading. */
-export const INLINE_MIME_TYPES = { ...IMAGE_MIME_TYPES, ...AUDIO_MIME_TYPES };
+export const INLINE_MIME_TYPES = { ...IMAGE_MIME_TYPES, ...VIDEO_MIME_TYPES, ...AUDIO_MIME_TYPES };
+
+export const isVideoType = (mimeType) => Boolean(VIDEO_MIME_TYPES[mimeType]);
 
 export const UPLOAD_LIMITS = {
     ATTACHMENT_MAX_SIZE: 10 * MB,
@@ -46,7 +57,7 @@ export const UPLOAD_LIMITS = {
 };
 
 /**
- * Hard per-note caps (the frontend mirrors these). Storage-wide limits
+ * Hard per-item caps (the frontend mirrors these). Storage-wide limits
  * (per-user daily quota, total cap, retention) are configurable in env.js.
  */
 export const VOICE_LIMITS = {
@@ -55,8 +66,18 @@ export const VOICE_LIMITS = {
     MAX_SIZE: 1.5 * MB,
 };
 
+export const VIDEO_LIMITS = {
+    // "Small videos", like Discord's free tier.
+    MAX_SIZE: 10 * MB,
+};
+
 export const UPLOAD_FOLDERS = {
     ATTACHMENTS: "attachments",
     AVATARS: "avatars",
     VOICE: "voice",
+    VIDEO: "video",
 };
+
+/** GridFS folder a message attachment is stored under (for quota accounting). */
+export const folderForAttachment = (mimeType) =>
+    isVideoType(mimeType) ? UPLOAD_FOLDERS.VIDEO : UPLOAD_FOLDERS.ATTACHMENTS;

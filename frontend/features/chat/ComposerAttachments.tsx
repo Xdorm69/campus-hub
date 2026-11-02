@@ -13,7 +13,10 @@ export function ComposerAttachments({
   onRemove: (index: number) => void;
 }) {
   const previews = useMemo(
-    () => files.map((file) => (file.type.startsWith("image/") ? URL.createObjectURL(file) : null)),
+    () =>
+      files.map((file) =>
+        file.type.startsWith("image/") || file.type.startsWith("video/") ? URL.createObjectURL(file) : null
+      ),
     [files]
   );
 
@@ -41,7 +44,10 @@ export function ComposerAttachments({
           </button>
 
           <div className="flex h-28 items-center justify-center overflow-hidden rounded bg-muted">
-            {previews[index] ? (
+            {previews[index] && file.type.startsWith("video/") ? (
+              // First frame as a thumbnail.
+              <video src={previews[index]!} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+            ) : previews[index] ? (
               // eslint-disable-next-line @next/next/no-img-element -- local blob preview
               <img src={previews[index]!} alt={file.name} className="h-full w-full object-cover" />
             ) : (
