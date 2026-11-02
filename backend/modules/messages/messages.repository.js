@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Message } from "../../models/index.js";
 
 const AUTHOR_FIELDS = "username avatarPath role";
@@ -6,7 +7,7 @@ const MESSAGE_POPULATE = [
     { path: "author", select: AUTHOR_FIELDS },
     {
         path: "replyTo",
-        select: "author content attachments deletedAt",
+        select: "author content attachments voiceNote deletedAt",
         populate: { path: "author", select: AUTHOR_FIELDS },
     },
 ];
@@ -65,14 +66,54 @@ export const messagesRepository = {
             { limit: 100 }
         ),
 
-    findAttachmentPathsByClass: async (classId) => {
+    /** Every stored file key (attachments + voice notes) in a class. */
+    findFilePathsByClass: async (classId) => {
         const messages = await Message.find(
-            { class: classId, "attachments.0": { $exists: true } },
-            { "attachments.path": 1 }
+            {
+                class: classId,
+                $or: [{ "attachments.0": { $exists: true } }, { "voiceNote.path": { $type: "string" } }],
+            },
+            { "attachments.path": 1, "voiceNote.path": 1 }
         ).lean();
 
-        return messages.flatMap((message) => message.attachments.map((a) => a.path));
+        return messages.flatMap((message) => [
+            ...(message.attachments ?? []).map((a) => a.path),
+            ...(message.voiceNote?.path ? [message.voiceNote.path] : []),
+        ]);
     },
+
+    /** Count and bytes of an author's voice notes created since `since`. */
+    voiceUsageByAuthorSince: async (authorId, since) => {
+        const [row] = await Message.aggregate([
+            {
+                $match: {
+                    author: new mongoose.Types.ObjectId(String(authorId)),
+                    createdAt: { $gte: since },
+                    voiceNote: { $ne: null },
+                },
+            },
+            { $group: { _id: null, bytes: { $sum: "$voiceNote.size" }, count: { $sum: 1 } } },
+        ]);
+
+        return { bytes: row?.bytes ?? 0, count: row?.count ?? 0 };
+    },
+
+    /** Oldest voice notes whose audio is still stored, created before `before`. */
+    findVoiceNotesOlderThan: (before, limit) =>
+        Message.find(
+            { "voiceNote.path": { $type: "string" }, createdAt: { $lt: before } },
+            { "voiceNote.path": 1 }
+        )
+            .sort({ createdAt: 1 })
+            .limit(limit)
+            .lean(),
+
+    /** Drops the audio reference but keeps the message ("voice message expired"). */
+    expireVoiceNotes: (messageIds) =>
+        Message.updateMany(
+            { _id: { $in: messageIds } },
+            { $set: { "voiceNote.path": null, "voiceNote.expiredAt": new Date() } }
+        ),
 
     removeByClass: (classId) => Message.deleteMany({ class: classId }),
 };

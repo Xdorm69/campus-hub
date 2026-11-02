@@ -2,7 +2,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import mongoose from "mongoose";
 import { envConfig } from "../config/env.js";
-import { ATTACHMENT_MIME_TYPES } from "../constants/upload.js";
+import { ALL_MIME_TYPES } from "../constants/upload.js";
 import { logger } from "./logger.js";
 
 /**
@@ -39,7 +39,7 @@ export function toPublicUrl(key) {
 /** Writes one multer (memory storage) file to GridFS and returns its key. */
 export async function saveUpload(file, folder) {
     const id = new mongoose.Types.ObjectId();
-    const extension = ATTACHMENT_MIME_TYPES[file.mimetype] ?? "";
+    const extension = ALL_MIME_TYPES[file.mimetype] ?? "";
 
     const stream = getBucket().openUploadStreamWithId(id, file.originalname, {
         metadata: { contentType: file.mimetype, folder },
@@ -85,6 +85,22 @@ export async function findUpload(key) {
     return getBucket().find({ _id: id }).next();
 }
 
-export function openUploadStream(fileId) {
-    return getBucket().openDownloadStream(fileId);
+/** Streams a stored file; `start`/`end` (inclusive) serve HTTP Range requests. */
+export function openUploadStream(fileId, { start, end } = {}) {
+    if (start === undefined) return getBucket().openDownloadStream(fileId);
+    // GridFS treats `end` as exclusive.
+    return getBucket().openDownloadStream(fileId, { start, end: end + 1 });
+}
+
+/** Total bytes currently stored under a folder (e.g. all voice notes). */
+export async function getFolderUsage(folder) {
+    const [row] = await mongoose.connection.db
+        .collection(`${BUCKET_NAME}.files`)
+        .aggregate([
+            { $match: { "metadata.folder": folder } },
+            { $group: { _id: null, bytes: { $sum: "$length" } } },
+        ])
+        .toArray();
+
+    return row?.bytes ?? 0;
 }

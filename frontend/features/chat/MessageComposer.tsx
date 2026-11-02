@@ -1,15 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { MicOff, PlusCircle, SendHorizontal, X } from "lucide-react";
+import { Mic, MicOff, PlusCircle, SendHorizontal, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAutoResizeTextarea } from "@/hooks/useAutoResizeTextarea";
 import { useSendMessage } from "@/hooks/useMessages";
-import { ATTACHMENT_LIMITS, MESSAGE_MAX_LENGTH } from "@/lib/constants";
-import { formatBytes } from "@/lib/format";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import { ATTACHMENT_LIMITS, MESSAGE_MAX_LENGTH, VOICE_LIMITS } from "@/lib/constants";
+import { formatBytes, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useChat } from "./ChatContext";
 import { ComposerAttachments } from "./ComposerAttachments";
+import { VoiceRecorderBar } from "./VoiceRecorderBar";
 
 const ACCEPTED_TYPES: readonly string[] = ATTACHMENT_LIMITS.ACCEPT;
 
@@ -52,15 +54,26 @@ export function MessageComposer() {
 
   const canSend = content.trim().length > 0 || files.length > 0;
 
+  const afterSend = () => {
+    cancelReply();
+    scrollToBottom();
+  };
+
   const submit = () => {
     if (!canSend) return;
 
     sendMessage.mutate({ content: content.trim(), files, replyTo: replyingTo });
     setContent("");
     setFiles([]);
-    cancelReply();
-    scrollToBottom();
+    afterSend();
   };
+
+  const recorder = useVoiceRecorder({
+    onRecorded: (voice) => {
+      sendMessage.mutate({ content: "", files: [], voice, replyTo: replyingTo });
+      afterSend();
+    },
+  });
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
@@ -114,63 +127,86 @@ export function MessageComposer() {
       )}
 
       <div className={cn("bg-input", replyingTo ? "rounded-b-lg" : "rounded-lg")}>
-        <ComposerAttachments
-          files={files}
-          onRemove={(index) => setFiles((current) => current.filter((_, i) => i !== index))}
-        />
-
-        <div className="flex items-end gap-1 px-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="my-2.5 rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Attach files"
-            title="Attach files"
-          >
-            <PlusCircle className="h-6 w-6" />
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            hidden
-            accept={ATTACHMENT_LIMITS.ACCEPT.join(",")}
-            onChange={(event) => {
-              addFiles(Array.from(event.target.files ?? []));
-              event.target.value = "";
-            }}
+        {recorder.isRecording ? (
+          <VoiceRecorderBar
+            elapsedMs={recorder.elapsedMs}
+            onCancel={recorder.cancel}
+            onSend={recorder.stop}
           />
+        ) : (
+          <>
+            <ComposerAttachments
+              files={files}
+              onRemove={(index) => setFiles((current) => current.filter((_, i) => i !== index))}
+            />
 
-          <textarea
-            ref={composerRef}
-            value={content}
-            rows={1}
-            maxLength={MESSAGE_MAX_LENGTH}
-            onChange={(event) => setContent(event.target.value)}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            placeholder={`Message #${classRoom.name}`}
-            aria-label={`Message #${classRoom.name}`}
-            className="max-h-80 flex-1 resize-none bg-transparent px-2 py-[13px] text-[15px] leading-[1.375rem] placeholder:text-muted-foreground focus:outline-none"
-          />
+            <div className="flex items-end gap-1 px-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="my-2.5 rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Attach files"
+                title="Attach files"
+              >
+                <PlusCircle className="h-6 w-6" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                hidden
+                accept={ATTACHMENT_LIMITS.ACCEPT.join(",")}
+                onChange={(event) => {
+                  addFiles(Array.from(event.target.files ?? []));
+                  event.target.value = "";
+                }}
+              />
 
-          {remaining < 500 && (
-            <span className={cn("my-3.5 text-xs", remaining < 100 ? "text-destructive" : "text-muted-foreground")}>
-              {remaining}
-            </span>
-          )}
+              <textarea
+                ref={composerRef}
+                value={content}
+                rows={1}
+                maxLength={MESSAGE_MAX_LENGTH}
+                onChange={(event) => setContent(event.target.value)}
+                onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
+                placeholder={`Message #${classRoom.name}`}
+                aria-label={`Message #${classRoom.name}`}
+                className="max-h-80 flex-1 resize-none bg-transparent px-2 py-[13px] text-[15px] leading-[1.375rem] placeholder:text-muted-foreground focus:outline-none"
+              />
 
-          <button
-            type="button"
-            onClick={submit}
-            disabled={!canSend}
-            className="my-2 rounded-md p-1.5 text-primary transition-colors hover:bg-primary/10 disabled:text-muted-foreground disabled:opacity-40 disabled:hover:bg-transparent"
-            aria-label="Send message"
-            title="Send (Enter)"
-          >
-            <SendHorizontal className="h-5 w-5" />
-          </button>
-        </div>
+              {remaining < 500 && (
+                <span className={cn("my-3.5 text-xs", remaining < 100 ? "text-destructive" : "text-muted-foreground")}>
+                  {remaining}
+                </span>
+              )}
+
+              {/* Empty composer -> mic (record a voice message); otherwise send. */}
+              {!canSend && recorder.isSupported ? (
+                <button
+                  type="button"
+                  onClick={recorder.start}
+                  className="my-2 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                  aria-label="Record voice message"
+                  title={`Record a voice message (up to ${formatDuration(VOICE_LIMITS.MAX_DURATION_MS)})`}
+                >
+                  <Mic className="h-5 w-5" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={submit}
+                  disabled={!canSend}
+                  className="my-2 rounded-md p-1.5 text-primary transition-colors hover:bg-primary/10 disabled:text-muted-foreground disabled:opacity-40 disabled:hover:bg-transparent"
+                  aria-label="Send message"
+                  title="Send (Enter)"
+                >
+                  <SendHorizontal className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <p className="mt-1 hidden px-1 text-[11px] text-muted-foreground sm:block">

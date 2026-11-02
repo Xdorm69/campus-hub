@@ -96,14 +96,14 @@ export const classesService = {
         const classDoc = await classesRepository.findById(classId);
         if (!classDoc) throw new NotFoundError("Class not found");
 
-        const attachmentPaths = await messagesRepository.findAttachmentPathsByClass(classId);
+        const filePaths = await messagesRepository.findFilePathsByClass(classId);
 
         await Promise.all([
             messagesRepository.removeByClass(classId),
             membershipRepository.removeByClass(classId),
         ]);
         await classesRepository.remove(classId);
-        await removeUploads(attachmentPaths);
+        await removeUploads(filePaths);
 
         return { id: classId };
     },

@@ -7,6 +7,7 @@ import { membershipRepository } from "../membership/membership.repository.js";
 import { membershipService } from "../membership/membership.service.js";
 import { messagesRepository } from "./messages.repository.js";
 import { toMessageDTO } from "./messages.mapper.js";
+import { assertVoiceNoteAllowed } from "./voice-quota.js";
 
 // A write stamps `updatedAt` slightly before it becomes visible to queries.
 // Re-scanning a few seconds back means a poll can't slip between the two;
@@ -66,10 +67,18 @@ export const messagesService = {
         };
     },
 
-    sendMessage: async (user, classId, { content, replyTo }, files = []) => {
+    sendMessage: async (user, classId, { content, replyTo, voiceDurationMs }, { files = [], voice = null } = {}) => {
         await membershipService.assertCanPost(user, classId);
 
-        if (!content && files.length === 0) {
+        if (voice) {
+            // Voice messages stand alone, like Discord's.
+            if (content || files.length > 0) {
+                throw new BadRequestError("Voice messages can't include text or files");
+            }
+            if (voiceDurationMs === undefined) {
+                throw new BadRequestError("voiceDurationMs is required with a voice message");
+            }
+        } else if (!content && files.length === 0) {
             throw new BadRequestError("Message can't be empty");
         }
 
@@ -80,8 +89,14 @@ export const messagesService = {
             }
         }
 
+        if (voice) await assertVoiceNoteAllowed(user.id, voice.size);
+
         // Files are stored only after every check has passed.
-        const keys = await saveUploads(files, UPLOAD_FOLDERS.ATTACHMENTS);
+        const [attachmentKeys, [voiceKey]] = await Promise.all([
+            saveUploads(files, UPLOAD_FOLDERS.ATTACHMENTS),
+            saveUploads(voice ? [voice] : [], UPLOAD_FOLDERS.VOICE),
+        ]);
+        const storedKeys = [...attachmentKeys, voiceKey].filter(Boolean);
 
         let message;
         try {
@@ -90,10 +105,18 @@ export const messagesService = {
                 author: user.id,
                 content,
                 replyTo: replyTo ?? null,
-                attachments: files.map((file, index) => toAttachment(file, keys[index])),
+                attachments: files.map((file, index) => toAttachment(file, attachmentKeys[index])),
+                voiceNote: voice
+                    ? {
+                          path: voiceKey,
+                          mimeType: voice.mimetype,
+                          size: voice.size,
+                          durationMs: voiceDurationMs,
+                      }
+                    : null,
             });
         } catch (error) {
-            await removeUploads(keys);
+            await removeUploads(storedKeys);
             throw error;
         }
 
@@ -111,6 +134,9 @@ export const messagesService = {
 
         if (String(message.author?._id) !== user.id) {
             throw new ForbiddenError("You can only edit your own messages");
+        }
+        if (message.voiceNote) {
+            throw new BadRequestError("Voice messages can't be edited");
         }
         await membershipService.assertCanPost(user, String(message.class));
 
@@ -144,9 +170,13 @@ export const messagesService = {
             deletedAt: new Date(),
             content: "",
             attachments: [],
+            voiceNote: null,
             reactions: [],
         });
-        await removeUploads(message.attachments.map((a) => a.path));
+        await removeUploads([
+            ...message.attachments.map((a) => a.path),
+            message.voiceNote?.path,
+        ].filter(Boolean));
 
         return toMessageDTO(deleted);
     },

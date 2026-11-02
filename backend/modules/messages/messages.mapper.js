@@ -24,7 +24,21 @@ function toReplyPreviewDTO(reply) {
         author: toAuthorDTO(reply.author),
         content: isDeleted ? "" : reply.content.slice(0, REPLY_PREVIEW_LENGTH),
         hasAttachments: !isDeleted && reply.attachments?.length > 0,
+        hasVoiceNote: !isDeleted && Boolean(reply.voiceNote),
         isDeleted,
+    };
+}
+
+function toVoiceNoteDTO(voiceNote) {
+    if (!voiceNote) return null;
+
+    return {
+        // null once the retention job has removed the audio.
+        url: toPublicUrl(voiceNote.path),
+        mimeType: voiceNote.mimeType,
+        size: voiceNote.size,
+        durationMs: voiceNote.durationMs,
+        isExpired: Boolean(voiceNote.expiredAt),
     };
 }
 
@@ -35,6 +49,7 @@ export function toMessageDTO(message) {
         author: toAuthorDTO(message.author),
         content: message.content,
         attachments: (message.attachments ?? []).map(toAttachmentDTO),
+        voiceNote: toVoiceNoteDTO(message.voiceNote),
         replyTo: toReplyPreviewDTO(message.replyTo),
         reactions: (message.reactions ?? []).map((reaction) => ({
             emoji: reaction.emoji,

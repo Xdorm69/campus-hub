@@ -34,6 +34,18 @@ export const ATTACHMENT_LIMITS = {
   ],
 } as const;
 
+/** Mirrors backend/constants/upload.js VOICE_LIMITS. */
+export const VOICE_LIMITS = {
+  MAX_DURATION_MS: 2 * 60 * 1000,
+  MAX_SIZE: 1.5 * MB,
+  /** Recordings shorter than this are treated as accidental taps. */
+  MIN_DURATION_MS: 500,
+  /** Opus at 32 kbps is clear speech at ~240 KB per minute. */
+  BITRATE: 32_000,
+  /** Preferred recorder formats, best first (Safari only supports mp4). */
+  MIME_TYPES: ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/webm", "audio/mp4"],
+} as const;
+
 export const AVATAR_LIMITS = {
   MAX_SIZE: 2 * MB,
   ACCEPT: ["image/png", "image/jpeg", "image/gif", "image/webp"],

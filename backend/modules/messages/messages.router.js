@@ -1,7 +1,7 @@
 import express from "express";
 import authenticate from "../../middleware/authenticate.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
-import { uploadAttachments } from "../../middleware/upload.middleware.js";
+import { uploadMessageFiles } from "../../middleware/upload.middleware.js";
 import { objectIdParam } from "../../middleware/params.middleware.js";
 import { messagesController } from "./messages.controller.js";
 import {
@@ -20,7 +20,7 @@ const messagesRouter = express.Router({ mergeParams: true });
 
 messagesRouter.get("/", validate(listMessagesQuerySchema, "query"), messagesController.listMessages);
 messagesRouter.get("/sync", validate(syncMessagesQuerySchema, "query"), messagesController.syncMessages);
-messagesRouter.post("/", uploadAttachments, validate(sendMessageSchema), messagesController.sendMessage);
+messagesRouter.post("/", uploadMessageFiles, validate(sendMessageSchema), messagesController.sendMessage);
 
 /** Message-scoped routes, mounted at /messages. */
 export const messageItemRouter = express.Router();

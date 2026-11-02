@@ -15,6 +15,12 @@ export const envConfig = {
     FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
     // Public origin of this API (no trailing slash), used to build file URLs.
     PUBLIC_URL: (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/+$/, ""),
+
+    // Voice notes are the easiest way to fill the database, so they're capped
+    // three ways: per user per day, in total, and by age.
+    VOICE_DAILY_LIMIT_MB: Number(process.env.VOICE_DAILY_LIMIT_MB) || 5,
+    VOICE_STORAGE_LIMIT_MB: Number(process.env.VOICE_STORAGE_LIMIT_MB) || 200,
+    VOICE_RETENTION_DAYS: Number(process.env.VOICE_RETENTION_DAYS) || 30,
 };
 
 export const isProduction = envConfig.NODE_ENV === "production";

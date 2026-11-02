@@ -28,8 +28,10 @@ Errors:
 | 403    | `ForbiddenError`                             | Not a member, muted, banned, not a moderator |
 | 404    | `NotFoundError`                              | Unknown resource or route |
 | 409    | `ConflictError`                              | Duplicate email, username, class code or name; already a member |
-| 413    | `UploadError`                                | File too large |
-| 429    | `RateLimit`                                  | Too many requests |
+| 413    | `UploadError`, `VoiceNoteTooLarge`           | File too large |
+| 416    | `RangeNotSatisfiable`                        | Byte range outside the file (`/uploads`) |
+| 429    | `RateLimit`, `VoiceQuotaExceeded`            | Too many requests; daily voice allowance used up |
+| 507    | `VoiceStorageFull`                           | App-wide voice note storage cap reached |
 
 ## Shared shapes
 
@@ -48,7 +50,8 @@ ClassMember { id, userId, user: UserSummary & { bio }, isModerator, muted, banne
 Message {
   id, classId, author: UserSummary | null, content,
   attachments: { id, url, name, mimeType, size }[],
-  replyTo: { id, author, content, hasAttachments, isDeleted } | null,
+  voiceNote: { url: string | null, mimeType, size, durationMs, isExpired } | null,   // url is null once expired
+  replyTo: { id, author, content, hasAttachments, hasVoiceNote, isDeleted } | null,
   reactions: { emoji, count, userIds }[],
   editedAt, deletedAt, createdAt, updatedAt
 }
@@ -145,11 +148,26 @@ Full design: [realtime-chat.md](realtime-chat.md).
 | `content` | string               | Up to 4000 characters. Can be empty if files are attached |
 | `replyTo` | message id           | Optional; must be a message in the same class that hasn't been deleted |
 | `files`   | file (repeat the field) | Up to 5, 10 MB each: PNG/JPEG/GIF/WebP, PDF, TXT, ZIP, DOC(X), XLS(X), PPT(X) |
+| `voice`   | file                 | A voice note: WebM, Ogg, MP4/M4A, AAC or MP3 audio, up to 1.5 MB. A codec suffix such as `audio/webm;codecs=opus` is fine |
+| `voiceDurationMs` | number       | Required with `voice`; up to 120000 (2 minutes) |
 
 Returns `201 Message`. Muted, banned and non-member users get 403.
 
+**Voice messages stand alone:** a request with `voice` can't also carry `content` or `files`, and voice messages can't be edited. Before anything is stored, the server checks each limit in turn:
+
+| Check | Default | Error |
+| ----- | ------- | ----- |
+| Size of this note | 1.5 MB | `413 VoiceNoteTooLarge` |
+| Sender's voice notes in the last 24 hours | `VOICE_DAILY_LIMIT_MB` = 5 MB | `429 VoiceQuotaExceeded` |
+| All stored voice notes in the app | `VOICE_STORAGE_LIMIT_MB` = 200 MB | `507 VoiceStorageFull` |
+
+After `VOICE_RETENTION_DAYS` (default 30) the audio is deleted. The message stays, with `voiceNote.isExpired: true` and `url: null`.
+
 ```bash
 curl -b cookies.txt -F "content=Notes for week 3" -F "files=@notes.pdf" \
+  http://localhost:4000/api/v1/classes/<classId>/messages
+
+curl -b cookies.txt -F "voice=@note.webm;type=audio/webm" -F "voiceDurationMs=8000" \
   http://localhost:4000/api/v1/classes/<classId>/messages
 ```
 
@@ -157,7 +175,7 @@ curl -b cookies.txt -F "content=Notes for week 3" -F "files=@notes.pdf" \
 
 | Method | Path                               | Body               | Who | Returns |
 | ------ | ---------------------------------- | ------------------ | --- | ------- |
-| PATCH  | `/messages/:messageId`             | `{ content }`      | Author (not muted) | `Message` with `editedAt` set |
+| PATCH  | `/messages/:messageId`             | `{ content }`      | Author (not muted); not voice messages | `Message` with `editedAt` set |
 | DELETE | `/messages/:messageId`             | —                  | Author, moderator, admin | `Message` with `deletedAt` set (soft delete; files removed) |
 | PUT    | `/messages/:messageId/reactions`   | `{ emoji }`        | Member | `Message`; adds your reaction, or removes it if already there |
 
@@ -165,4 +183,4 @@ curl -b cookies.txt -F "content=Notes for week 3" -F "files=@notes.pdf" \
 
 ## Uploaded files
 
-Files are served from `GET /uploads/<key>` on the API's address (outside `/api/v1` and its rate limit), where `key` is `<ObjectId><ext>`, e.g. `/uploads/6af3c1d2e4b5a6978f0e1d2c.png`. Files are streamed from MongoDB GridFS and cached by browsers for a year (`immutable`). Images are shown inline; all other types are sent as downloads with their original filename. An unknown key returns `404`.
+Files are served from `GET /uploads/<key>` on the API's address (outside `/api/v1` and its rate limit), where `key` is `<ObjectId><ext>`, e.g. `/uploads/6af3c1d2e4b5a6978f0e1d2c.png`. Files are streamed from MongoDB GridFS and cached by browsers for a year (`immutable`). Images and audio are shown inline; all other types are sent as downloads with their original filename. HTTP `Range` requests are supported (`206 Partial Content`), which `<audio>` players need for seeking and Safari needs to play at all. An unknown or expired key returns `404`.

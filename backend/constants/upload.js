@@ -1,10 +1,5 @@
 const MB = 1024 * 1024;
 
-export const UPLOAD_FOLDERS = {
-    ATTACHMENTS: "attachments",
-    AVATARS: "avatars",
-};
-
 // Extension is derived from the MIME type (never from the client file name),
 // so a renamed .html can't slip through as an image.
 export const IMAGE_MIME_TYPES = {
@@ -27,8 +22,41 @@ export const ATTACHMENT_MIME_TYPES = {
     "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
 };
 
+// What browsers' MediaRecorder produces: Chrome/Firefox record Opus in WebM
+// or Ogg, Safari records AAC in MP4.
+export const AUDIO_MIME_TYPES = {
+    "audio/webm": ".webm",
+    "audio/ogg": ".ogg",
+    "audio/mp4": ".m4a",
+    "audio/x-m4a": ".m4a",
+    "audio/aac": ".aac",
+    "audio/mpeg": ".mp3",
+};
+
+/** Every type we store, for looking up a file extension. */
+export const ALL_MIME_TYPES = { ...ATTACHMENT_MIME_TYPES, ...AUDIO_MIME_TYPES };
+
+/** Types the browser may render/play inline instead of downloading. */
+export const INLINE_MIME_TYPES = { ...IMAGE_MIME_TYPES, ...AUDIO_MIME_TYPES };
+
 export const UPLOAD_LIMITS = {
     ATTACHMENT_MAX_SIZE: 10 * MB,
     ATTACHMENT_MAX_COUNT: 5,
     AVATAR_MAX_SIZE: 2 * MB,
+};
+
+/**
+ * Hard per-note caps (the frontend mirrors these). Storage-wide limits
+ * (per-user daily quota, total cap, retention) are configurable in env.js.
+ */
+export const VOICE_LIMITS = {
+    MAX_DURATION_MS: 2 * 60 * 1000,
+    // ~2 min of 32 kbps Opus is ~0.5 MB; leaves headroom for Safari's AAC.
+    MAX_SIZE: 1.5 * MB,
+};
+
+export const UPLOAD_FOLDERS = {
+    ATTACHMENTS: "attachments",
+    AVATARS: "avatars",
+    VOICE: "voice",
 };

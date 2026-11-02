@@ -1,4 +1,4 @@
-import { CornerUpLeft, Image as ImageIcon } from "lucide-react";
+import { CornerUpLeft, Image as ImageIcon, Mic } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ReplyPreview } from "@/types/message";
 
@@ -19,7 +19,8 @@ export function jumpToMessage(messageId: string) {
 export function ReplyReference({ reply }: { reply: ReplyPreview }) {
   const label = reply.isDeleted
     ? "Original message was deleted"
-    : reply.content || (reply.hasAttachments ? "Click to see attachment" : "");
+    : reply.content ||
+      (reply.hasVoiceNote ? "Voice message" : reply.hasAttachments ? "Click to see attachment" : "");
 
   return (
     <button
@@ -36,6 +37,7 @@ export function ReplyReference({ reply }: { reply: ReplyPreview }) {
         </>
       )}
       <span className="truncate italic">{label}</span>
+      {reply.hasVoiceNote && <Mic className="h-3.5 w-3.5 shrink-0" />}
       {reply.hasAttachments && !reply.content && <ImageIcon className="h-3.5 w-3.5 shrink-0" />}
     </button>
   );

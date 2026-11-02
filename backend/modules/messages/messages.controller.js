@@ -13,7 +13,10 @@ export const messagesController = {
     },
 
     sendMessage: async (req, res) => {
-        const message = await messagesService.sendMessage(req.user, req.params.classId, req.body, req.files);
+        const message = await messagesService.sendMessage(req.user, req.params.classId, req.body, {
+            files: req.files?.files ?? [],
+            voice: req.files?.voice?.[0] ?? null,
+        });
         ApiResponse.send(res, 201, message, "Message sent successfully");
     },
 

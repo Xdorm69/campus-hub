@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { objectIdSchema } from "../../utils/validators.js";
+import { VOICE_LIMITS } from "../../constants/upload.js";
 
 export const MESSAGE_MAX_LENGTH = 4000;
 
@@ -18,6 +19,14 @@ export const syncMessagesQuerySchema = z.object({
 export const sendMessageSchema = z.object({
     content: contentSchema.default(""),
     replyTo: objectIdSchema.optional().or(z.literal("").transform(() => undefined)),
+    // Length of the attached `voice` recording, as measured by the recorder.
+    voiceDurationMs: z.coerce
+        .number()
+        .int()
+        .min(0)
+        // Small allowance for recorder timing jitter.
+        .max(VOICE_LIMITS.MAX_DURATION_MS + 2_000, "Voice messages are limited to 2 minutes")
+        .optional(),
 });
 
 export const editMessageSchema = z.object({

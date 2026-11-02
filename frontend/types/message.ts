@@ -8,12 +8,28 @@ export interface Attachment {
   size: number;
 }
 
+export interface VoiceNote {
+  /** null once the audio has expired (see VOICE_RETENTION_DAYS). */
+  url: string | null;
+  mimeType: string;
+  size: number;
+  durationMs: number;
+  isExpired: boolean;
+}
+
 export interface ReplyPreview {
   id: string;
   author: UserSummary | null;
   content: string;
   hasAttachments: boolean;
+  hasVoiceNote: boolean;
   isDeleted: boolean;
+}
+
+/** A finished recording, ready to send. */
+export interface VoiceRecording {
+  file: File;
+  durationMs: number;
 }
 
 export interface Reaction {
@@ -25,6 +41,8 @@ export interface Reaction {
 export interface SendMessagePayload {
   content: string;
   files: File[];
+  /** Voice messages stand alone: no text or files alongside. */
+  voice?: VoiceRecording | null;
   replyTo?: Message | null;
 }
 
@@ -35,6 +53,7 @@ export interface Message {
   author: UserSummary | null;
   content: string;
   attachments: Attachment[];
+  voiceNote: VoiceNote | null;
   replyTo: ReplyPreview | null;
   reactions: Reaction[];
   editedAt: string | null;

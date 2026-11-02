@@ -21,11 +21,15 @@ export const messageService = {
     return data.data;
   },
 
-  async send(classId: string, { content, files, replyTo }: SendMessagePayload): Promise<Message> {
+  async send(classId: string, { content, files, voice, replyTo }: SendMessagePayload): Promise<Message> {
     const form = new FormData();
     form.append("content", content);
     if (replyTo) form.append("replyTo", replyTo.id);
     files.forEach((file) => form.append("files", file));
+    if (voice) {
+      form.append("voice", voice.file);
+      form.append("voiceDurationMs", String(Math.round(voice.durationMs)));
+    }
 
     const { data } = await api.post<ApiResponse<Message>>(`/classes/${classId}/messages`, form);
     return data.data;

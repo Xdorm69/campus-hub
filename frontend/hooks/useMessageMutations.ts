@@ -52,12 +52,23 @@ function buildOptimisticMessage(
       mimeType: file.type,
       size: file.size,
     })),
+    // Playable straight away from the local recording.
+    voiceNote: payload.voice
+      ? {
+          url: URL.createObjectURL(payload.voice.file),
+          mimeType: payload.voice.file.type,
+          size: payload.voice.file.size,
+          durationMs: payload.voice.durationMs,
+          isExpired: false,
+        }
+      : null,
     replyTo: payload.replyTo
       ? {
           id: payload.replyTo.id,
           author: payload.replyTo.author,
           content: payload.replyTo.content,
           hasAttachments: payload.replyTo.attachments.length > 0,
+          hasVoiceNote: Boolean(payload.replyTo.voiceNote),
           isDeleted: false,
         }
       : null,
@@ -72,7 +83,8 @@ function buildOptimisticMessage(
 }
 
 function revokePreviewUrls(message: Message | undefined) {
-  message?.attachments.forEach((a) => a.url.startsWith("blob:") && URL.revokeObjectURL(a.url));
+  const urls = [...(message?.attachments ?? []).map((a) => a.url), message?.voiceNote?.url ?? ""];
+  urls.forEach((url) => url.startsWith("blob:") && URL.revokeObjectURL(url));
 }
 
 /**
