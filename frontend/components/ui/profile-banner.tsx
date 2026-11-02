@@ -18,7 +18,15 @@ export function ProfileBanner({ user, className, children }: ProfileBannerProps)
   return (
     <div
       className={cn("relative overflow-hidden", className)}
-      style={banner.kind === "color" ? { backgroundColor: banner.color } : undefined}
+      style={
+        banner.kind === "color"
+          ? {
+              // Darker than the avatar's fallback color (same seed), so the
+              // avatar doesn't blend into the banner.
+              backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${banner.color} 70%, black), color-mix(in srgb, ${banner.color} 35%, black))`,
+            }
+          : undefined
+      }
     >
       {banner.kind === "image" && (
         // eslint-disable-next-line @next/next/no-img-element -- user uploads live on the API origin

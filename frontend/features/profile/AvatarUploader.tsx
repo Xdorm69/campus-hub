@@ -32,7 +32,8 @@ export function AvatarUploader({ user }: { user: CurrentUser }) {
   };
 
   return (
-    <div className="flex items-center gap-4">
+    // items-end keeps the buttons below the banner while the avatar overlaps it.
+    <div className="relative z-10 flex items-end gap-4">
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
@@ -60,7 +61,7 @@ export function AvatarUploader({ user }: { user: CurrentUser }) {
         }}
       />
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 pb-1.5">
         <Button size="sm" onClick={() => inputRef.current?.click()} isLoading={upload.isPending}>
           Upload avatar
         </Button>

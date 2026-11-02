@@ -41,7 +41,7 @@ function UserProfileCard({
       <ProfileBanner user={profile ?? { id: userId }} className="h-20" />
 
       <div className="px-4 pb-4">
-        <div className="-mt-9 mb-2 w-fit rounded-full border-[6px] border-popover">
+        <div className="relative z-10 -mt-9 mb-2 w-fit rounded-full border-[6px] border-popover">
           {profile ? (
             <UserAvatar user={profile} className="h-16 w-16" fallbackClassName="text-xl" />
           ) : (
