@@ -116,7 +116,7 @@ export function GifPicker({ onPick }: { onPick: (gif: GifEmbed) => void }) {
       <PopoverContent
         side="top"
         align="end"
-        className="flex h-[460px] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden p-0"
+        className="flex h-[min(460px,var(--radix-popover-content-available-height))] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden p-0"
       >
         <div className="border-b border-border p-3">
           <div className="relative">

@@ -48,7 +48,7 @@ export function MessageReactions({ message }: { message: Message }) {
           trigger={
             <button
               type="button"
-              className="flex h-6 items-center rounded-md bg-muted px-1.5 text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100"
+              className="flex h-6 items-center rounded-md bg-muted px-1.5 text-muted-foreground opacity-0 transition hover:text-foreground group-hover:opacity-100 [@media(hover:none)]:opacity-100"
               aria-label="Add reaction"
             >
               <SmilePlus className="h-4 w-4" />

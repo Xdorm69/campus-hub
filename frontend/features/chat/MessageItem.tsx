@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 import { AlertCircle, Crown } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { UserProfilePopover } from "@/features/members/UserProfilePopover";
@@ -74,20 +74,51 @@ function FailedMessageActions({ message }: { message: Message }) {
 }
 
 function MessageItemComponent({ message, isGrouped }: MessageItemProps) {
-  const { classRoom, editingId } = useChat();
+  const { classRoom, editingId, isTouch, activeMessageId, toggleActiveMessage, clearActiveMessage } = useChat();
+  const rowRef = useRef<HTMLDivElement>(null);
   const isEditing = editingId === message.id;
+  const isActive = activeMessageId === message.id;
   const isPending = message.clientStatus === "sending";
   const isFailed = message.clientStatus === "failed";
   const isConfirmed = !message.clientStatus;
   const showHeader = !isGrouped || Boolean(message.replyTo);
 
+  // Touch: a tap anywhere outside the selected message closes its actions.
+  useEffect(() => {
+    if (!isActive) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      // Ignore taps inside this message and inside its popovers/dialogs.
+      if (rowRef.current?.contains(target)) return;
+      if ((target as HTMLElement).closest?.("[data-radix-popper-content-wrapper], [role=dialog]")) return;
+      clearActiveMessage();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [isActive, clearActiveMessage]);
+
+  // Touch: tapping the message body (not a link, button or player inside
+  // it) shows the action toolbar that hover reveals on desktop.
+  const handleTap = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isTouch || !isConfirmed || isEditing) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("a, button, input, textarea, video, audio, [role='slider']")) return;
+    toggleActiveMessage(message.id);
+  };
+
   return (
     <div
+      ref={rowRef}
       id={`message-${message.id}`}
+      onClick={handleTap}
+      data-active={isActive || undefined}
       className={cn(
-        "group relative px-4 py-0.5 transition-colors hover:bg-accent/60",
+        "group relative px-4 py-0.5 transition-colors",
+        // Hover highlight only where hover exists; sticky :hover on phones
+        // would leave a random message highlighted after every tap.
+        "[@media(hover:hover)]:hover:bg-accent/60",
         showHeader && "mt-[17px]",
-        isEditing && "bg-accent/60"
+        (isEditing || isActive) && "bg-accent/60"
       )}
     >
       {message.replyTo && <ReplyReference reply={message.replyTo} />}
@@ -112,7 +143,7 @@ function MessageItemComponent({ message, isGrouped }: MessageItemProps) {
             <time
               dateTime={message.createdAt}
               title={formatFullDate(message.createdAt)}
-              className="hidden pt-1 text-right text-[11px] leading-[1.375rem] text-muted-foreground group-hover:block"
+              className="hidden pt-1 text-right text-[11px] leading-[1.375rem] text-muted-foreground group-hover:block group-data-[active]:block"
             >
               {formatTime(message.createdAt)}
             </time>
@@ -166,7 +197,7 @@ function MessageItemComponent({ message, isGrouped }: MessageItemProps) {
         </div>
       </div>
 
-      {isConfirmed && !isEditing && <MessageToolbar message={message} />}
+      {isConfirmed && !isEditing && <MessageToolbar message={message} isActive={isActive} />}
     </div>
   );
 }

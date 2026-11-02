@@ -95,7 +95,7 @@ export function MessageComposer() {
 
   if (classRoom.isMuted) {
     return (
-      <div className="px-4 pb-6">
+      <div className="px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-3 rounded-lg bg-input px-4 py-3 text-sm text-muted-foreground">
           <MicOff className="h-5 w-5" />
           You&apos;ve been muted in this class and can&apos;t send messages.
@@ -107,7 +107,7 @@ export function MessageComposer() {
   const remaining = MESSAGE_MAX_LENGTH - content.length;
 
   return (
-    <div className="shrink-0 px-4 pb-6">
+    <div className="shrink-0 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       {replyingTo && (
         <div className="flex items-center justify-between rounded-t-lg bg-secondary/70 px-4 py-2 text-sm text-muted-foreground">
           <span className="truncate">

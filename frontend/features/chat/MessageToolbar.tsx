@@ -32,8 +32,8 @@ function ToolbarButton({
 }
 
 /** Floating hover actions, top-right of a message. */
-export function MessageToolbar({ message }: { message: Message }) {
-  const { classRoom, me, isAdmin, startReply, setEditingId } = useChat();
+export function MessageToolbar({ message, isActive = false }: { message: Message; isActive?: boolean }) {
+  const { classRoom, me, isAdmin, isTouch, startReply, setEditingId, clearActiveMessage } = useChat();
   const toggleReaction = useToggleReaction(classRoom.id);
   const deleteMessage = useDeleteMessage(classRoom.id);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -44,14 +44,25 @@ export function MessageToolbar({ message }: { message: Message }) {
   const authorIsAdmin = message.author?.role === "ADMIN";
   const canDelete = isOwn || (classRoom.canModerate && (!authorIsAdmin || isAdmin));
 
-  const react = (emoji: string) => toggleReaction.mutate({ messageId: message.id, emoji });
+  const react = (emoji: string) => {
+    toggleReaction.mutate({ messageId: message.id, emoji });
+    clearActiveMessage();
+  };
 
   return (
     <>
       <div
         className={cn(
-          "absolute -top-4 right-4 z-10 items-center rounded-md border border-border bg-card shadow-sm",
-          pickerOpen ? "flex" : "hidden group-hover:flex group-focus-within:flex"
+          "absolute right-4 z-10 items-center rounded-md border border-border bg-card shadow-sm",
+          // Touch: float fully above the message so it doesn't cover what was tapped.
+          isTouch ? "bottom-full mb-1" : "-top-4",
+          // Desktop: on hover/focus. Touch: on tap (isActive) — sticky :hover
+          // on phones would otherwise leave toolbars open everywhere.
+          pickerOpen || isActive
+            ? "flex"
+            : "hidden [@media(hover:hover)]:group-hover:flex [@media(hover:hover)]:group-focus-within:flex",
+          // Bigger tap targets on touch screens.
+          isTouch && "[&_button]:h-10 [&_button]:w-10"
         )}
       >
         {classRoom.isMember &&
@@ -77,7 +88,13 @@ export function MessageToolbar({ message }: { message: Message }) {
           </ToolbarButton>
         )}
         {isOwn && canPost && !message.voiceNote && !message.gif && (
-          <ToolbarButton label="Edit" onClick={() => setEditingId(message.id)}>
+          <ToolbarButton
+            label="Edit"
+            onClick={() => {
+              setEditingId(message.id);
+              clearActiveMessage();
+            }}
+          >
             <Pencil className="h-4 w-4" />
           </ToolbarButton>
         )}
@@ -99,7 +116,9 @@ export function MessageToolbar({ message }: { message: Message }) {
         description={
           <>
             Are you sure you want to delete this message?
-            <span className="mt-2 block text-xs">Tip: hold Shift while clicking delete to skip this.</span>
+            {!isTouch && (
+              <span className="mt-2 block text-xs">Tip: hold Shift while clicking delete to skip this.</span>
+            )}
           </>
         }
         confirmLabel="Delete"

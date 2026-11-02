@@ -14,7 +14,7 @@ export function UserPanel() {
   const logout = useLogout();
 
   return (
-    <div className="flex items-center gap-1 bg-sidebar-panel px-2 py-1.5">
+    <div className="flex items-center gap-1 bg-sidebar-panel px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
       <Link
         href="/profile"
         className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 transition-colors hover:bg-sidebar-accent"
